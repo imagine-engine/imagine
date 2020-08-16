@@ -10,4 +10,4 @@
 
 Multi-language support with:
 * Python (2.7 and 3.5+)
-* [Julia](https://github.com/imagine-engine/imagine/tree/master/imagine/julia)
+* [Julia](https://github.com/imagine-engine/imagine.jl)
