@@ -10,5 +10,4 @@
 
 Multi-language support with:
 * Python (2.7 and 3.5+)
-* [C++](https://github.com/imagine-engine/imagine/tree/master/imagine/cpp)
 * [Julia](https://github.com/imagine-engine/imagine/tree/master/imagine/julia)
