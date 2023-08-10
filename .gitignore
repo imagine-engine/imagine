@@ -1,1 +1,6 @@
+target
+imagine_engine.egg-info
+Cargo.lock
+.pytest_cache
+__pycache__
 .DS_Store
