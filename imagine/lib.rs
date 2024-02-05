@@ -32,13 +32,12 @@ mod animation;
 mod controller;
 
 use shader::*;
+use output::*;
 use loaders::*;
 use math::Vector;
 use color::Color;
-use instance::wait;
 use camera::Camera;
 use world::PyWorld;
-use output::PyOutput;
 use pyo3::wrap_pymodule;
 use objects::basic_shapes::*;
 
@@ -108,10 +107,9 @@ fn imagine(_py: Python, m: &PyModule) -> PyResult<()> {
   let output = Py::new(_py, PyOutput {}).unwrap();
   m.add("output", output)?;
 
-  let camera = Py::new(_py, Camera::new()).unwrap();
-  m.add("camera", camera)?;
-
   m.add_function(wrap_pyfunction!(wait, m)?)?;
+  m.add_function(wrap_pyfunction!(record, m)?)?;
+  m.add_function(wrap_pyfunction!(stop, m)?)?;
 
   Ok(())
 }

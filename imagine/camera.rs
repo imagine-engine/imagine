@@ -18,12 +18,13 @@
 
 use pyo3::prelude::*;
 use crate::instance::IMAGINE;
+use nalgebra::{Vector2, Matrix3};
+use crate::render::primitives::Camera2D;
+use crate::controller::Camera2DController;
 
 #[pyclass]
 pub struct Camera {
-  #[pyo3(get, set)]
-  pub recording: bool,
-  // pub projection: Matrix4
+  pub world_object: Camera2DController
 }
 
 #[pymethods]
@@ -31,49 +32,25 @@ impl Camera {
   #[staticmethod]
   pub fn new() -> Self {
     Self {
-      recording: false
+      world_object: IMAGINE.lock().unwrap().world.add_camera2d(Camera2D {
+        aspect: 16.0 / 9.0,
+        rotation: 0.0,
+        scale: Vector2::new(1.0, 1.0),
+        position: Vector2::new(0.0, 0.0),
+        view: Matrix3::identity()
+      })
     }
   }
 
-  #[getter(recording)]
-  fn get_recording_status(&self) -> PyResult<bool> {
-    Ok(IMAGINE.lock().unwrap().output.video.writing)
-  }
-
-  // pub fn resolution(&self) -> (i32, i32) {
-  //   if self.output.is_none() {
-  //     return (self.output.width, self.output.height);
-  //   } else {
-  //     return (0, 0);
-  //   }
+  // pub fn set_default(&self) {
+  //   IMAGINE.lock().unwrap().world.default_camera_2d = self.world_object.id;
   // }
 
-  #[pyo3(signature = (path="video.mp4", fps=24, width=1920, height=1080, bitrate=8000))]
-  pub fn record(
-    &mut self,
-    path: &str,
-    fps: i32,
-    width: i32,
-    height: i32,
-    bitrate: usize
-  ) {
-    self.recording = true;
-    IMAGINE.lock().unwrap().output.start_video(
-      path,
-      fps,
-      width,
-      height,
-      bitrate
-    );
-  }
-
-  pub fn stop(&mut self) {
-    self.recording = false;
-    IMAGINE.lock().unwrap().output.stop();
-  }
-
   // #[pyo3(signature = (filename="snapshot.png"))]
-  // fn snapshot(&self, filename: &str) {
-  //   IMAGINE.lock().unwrap().snapshot("")
+  // pub fn snapshot(&self, filename: &str) {
+  //   let current_cam = IMAGINE.lock().unwrap().world.default_camera_2d;
+  //   self.set_default();
+  //   // IMAGINE.lock().unwrap().snapshot()
+  //   IMAGINE.lock().unwrap().world.default_camera_2d = current_cam;
   // }
 }

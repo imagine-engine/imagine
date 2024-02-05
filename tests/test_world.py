@@ -1,5 +1,5 @@
 # =============================================================================
-# test_frame.py
+# test_world.py
 # =============================================================================
 # Copyright 2024 Menelik Eyasu
 
@@ -16,26 +16,11 @@
 # limitations under the License.
 # =============================================================================
 
-import os
 from imagine import *
 
-def test_frame():
-  frame = render()
-  pixel = frame[0, 0]
-
-  assert frame.width == 1920
-  assert frame.height == 1080
-  assert pixel.r == 0
-  assert pixel.g == 0
-  assert pixel.b == 0
-  assert len(frame.row(0)) == 1920
-  assert len(frame.column(0)) == 1080
-
-  frame.save()
-  assert 'frame.png' in os.listdir()
-
-  frame.save('test.png')
-  assert 'test.png' in os.listdir()
-
-  os.remove('frame.png')
-  os.remove('test.png')
+def test_wait():
+  assert world.age == 0
+  wait(13)
+  assert world.age == 13
+  wait(5)
+  assert world.age == 18

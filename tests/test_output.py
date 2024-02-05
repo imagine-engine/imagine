@@ -1,5 +1,5 @@
 # =============================================================================
-# test_WORLD.py
+# test_output.py
 # =============================================================================
 # Copyright 2024 Menelik Eyasu
 
@@ -16,16 +16,30 @@
 # limitations under the License.
 # =============================================================================
 
+import os
 from imagine import *
 
-def test_default_WORLD():
-  assert WORLD.age == 0
-  assert WORLD.lights == []
-  assert WORLD.objects == []
+def test_record():
+  assert output.width == 1920
+  assert output.height == 1080
+  assert not output.recording
 
-def test_wait():
-  assert WORLD.age == 0
-  wait(13)
-  assert WORLD.age == 13
-  wait(5)
-  assert WORLD.age == 18
+  video_made = os.path.isfile('video.mp4')
+  assert not video_made
+
+  record()
+  assert output.recording
+  assert video_made != os.path.isfile('video.mp4')
+
+  stop()
+  assert not output.recording
+
+  labeled_video_made = os.path.isfile('test.mp4')
+  assert not labeled_video_made
+
+  record('test.mp4')
+  assert output.recording
+  assert labeled_video_made != os.path.isfile('test.mp4')
+
+  stop()
+  assert not output.recording

@@ -259,8 +259,3 @@ impl App {
   //   )).unwrap()
   // }
 }
-
-#[pyfunction]
-pub fn wait(t: f32) {
-  IMAGINE.lock().unwrap().wait(t);
-}

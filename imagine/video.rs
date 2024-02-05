@@ -243,7 +243,9 @@ impl Video {
 
   // pub fn add_track(&self, frame: _______) {}
 
-  pub fn free(&self) {
+  pub fn free(&mut self) {
+    self.writing = false;
+
     unsafe {
       avcodec_send_frame(self.image_context, std::ptr::null_mut());
       // avcodec_send_frame(self.audio_context, std::ptr::null_mut());

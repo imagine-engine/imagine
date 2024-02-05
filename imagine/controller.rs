@@ -29,6 +29,14 @@ pub struct Object3DController {
   pub id: i32
 }
 
+pub struct Camera2DController {
+  pub id: i32
+}
+
+pub struct Camera3DController {
+  pub id: i32
+}
+
 impl Object2DController {
   pub fn animate(&self, animation: Animation) {
     IMAGINE.lock().unwrap().run(animation.duration, &[animation]);

@@ -1,6 +1,6 @@
 target
 *.so
-imagine_engine.egg-info
+imagine_engine.egg-info/
 Cargo.lock
 .pytest_cache
 __pycache__

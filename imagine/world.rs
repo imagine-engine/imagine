@@ -17,10 +17,10 @@
 *******************************************************************************/
 
 use pyo3::prelude::*;
+use crate::controller::*;
 use crate::instance::IMAGINE;
 use std::collections::{HashMap, BTreeMap};
 use crate::render::primitives::*;
-use crate::controller::{Object2DController, Object3DController};
 
 pub enum Domain {
   World3D,
@@ -33,6 +33,10 @@ pub struct World {
   pub domain: Domain,
   pub camera_3d: Camera3D,
   pub camera_2d: Camera2D,
+  // pub default_camera_2d: i32,
+  // pub default_camera_3d: i32,
+  // pub cameras_3d: HashMap<i32, Camera3D>,
+  // pub cameras_2d: HashMap<i32, Camera2D>,
   pub lights: HashMap<i32, WorldLight>,
   pub meshes: HashMap<i32, Object3D>,
   pub paths: BTreeMap<i32, PathConfig>,
@@ -49,26 +53,27 @@ impl World {
   }
 
   pub fn add_path(&mut self, object: PathConfig) -> Object2DController {
-    // let id = self.objects_2d.len() as i32;
-    // self.objects_2d.insert(id, object);
+    let id = self.paths.len() as i32;
+    self.paths.insert(id, object);
 
-    // Object2DController { id }
-    Object2DController { id: 0 }
+    Object2DController { id }
   }
 
-  // pub fn add_sprite(&mut self, object: SpriteConfig) -> Object2DController {
-  //   let id = self.sprites.len() as i32;
-  //   self.sprites.insert(id, object);
+  pub fn add_camera2d(&mut self, camera: Camera2D) -> Camera2DController {
+    // let id = self.cameras_2d.len() as i32;
+    // self.cameras_2d.insert(id, camera);
 
-  //   Object2DController { id }
-  // }
+    // Camera2DController { id }
+    Camera2DController { id: 0 }
+  }
 
-  // pub fn add_light(&mut self, light: Light) -> LightController {
-  //   let id = self.lights.len() as i32;
-  //   self.lights.insert(id, light);
+  pub fn add_camera3d(&mut self, camera: Camera3D) -> Camera3DController {
+    // let id = self.cameras_3d.len() as i32;
+    // self.cameras_3d.insert(id, camera);
 
-  //   LightController { id }
-  // }
+    // Camera3DController { id }
+    Camera3DController { id: 0 }
+  }
 
   pub fn access_mesh<F>(
     &mut self,

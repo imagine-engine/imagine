@@ -20,6 +20,7 @@ use pyo3::prelude::*;
 use crate::video::Video;
 use crate::world::World;
 use crate::render::render;
+use crate::instance::IMAGINE;
 use crate::render::RenderGraph;
 
 pub struct Output {
@@ -68,17 +69,44 @@ pub struct PyOutput;
 impl PyOutput {
   #[getter(width)]
   fn get_width(&self) -> PyResult<u32> {
-    Ok(1920)
+    Ok(IMAGINE.lock().unwrap().output.render_graph.context.size.width)
   }
 
   #[getter(height)]
   fn get_height(&self) -> PyResult<u32> {
-    Ok(1080)
+    Ok(IMAGINE.lock().unwrap().output.render_graph.context.size.height)
+  }
+
+  #[getter(recording)]
+  fn get_recording_status(&self) -> PyResult<bool> {
+    Ok(IMAGINE.lock().unwrap().output.video.writing)
   }
 }
 
-// #[pyfunction]
-// pub fn wait(t: f32) {
-//   IMAGINE.lock().unwrap().world.age += t;
-//   IMAGINE.lock().unwrap().output.update();
-// }
+#[pyfunction]
+pub fn wait(t: f32) {
+  IMAGINE.lock().unwrap().wait(t);
+}
+
+#[pyfunction]
+#[pyo3(signature = (path="video.mp4", fps=24, width=1920, height=1080, bitrate=8000))]
+pub fn record(
+  path: &str,
+  fps: i32,
+  width: i32,
+  height: i32,
+  bitrate: usize
+) {
+  IMAGINE.lock().unwrap().output.start_video(
+    path,
+    fps,
+    width,
+    height,
+    bitrate
+  );
+}
+
+#[pyfunction]
+pub fn stop() {
+  IMAGINE.lock().unwrap().output.stop();
+}

@@ -24,7 +24,7 @@ import subprocess
 def pytest_sessionstart(session):
     lib = glob.glob('imagine.*.so')
     if lib:
-        shutil.move(lib[0], f'tests/{lib[0]}')
+        shutil.move(lib[0], f'tests/imagine.so')
     else:
         subprocess.call(['cargo', 'build'])
         shutil.move(glob.glob('target/debug/*.dylib')[0], 'tests/imagine.so')
@@ -32,4 +32,6 @@ def pytest_sessionstart(session):
 def pytest_sessionfinish(session, exitstatus):
     if glob.glob('target'):
         shutil.rmtree('target')
-    os.remove('tests/imagine.so')
+    lib = glob.glob('imagine.*.so')
+    if lib:
+        os.remove(lib)

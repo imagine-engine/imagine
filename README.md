@@ -1,6 +1,6 @@
-[![logo](https://imaginedocs.theneuron.repl.co/github-logo.png)](https://imagine-engine.netlify.app/)
+[![logo](https://i.ibb.co/BKkwq2c/imagine-logo.png)](https://imagine-engine.netlify.app)
 
-[imagine](https://imagine.netlify.app) is an intuitive, yet powerful general-purpose animation library that allows you to create complex physics simulations, test out reinforcement learning bots, and demo UI designs. Really anything you can imagine.
+[imagine](https://imagine-engine.netlify.app) is a simple but powerful general-purpose animation library that allows you to record simulations, create fascinating visualizations, test out AI agents. Really anything you can imagine.
 
 ## Install
 ```sh
