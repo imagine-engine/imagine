@@ -1,0 +1,99 @@
+#version 450
+
+layout (local_size_x=16, local_size_y=16) in;
+
+struct Path {
+    uint segments;
+    vec4 color;
+    vec4 bounds;
+    mat3 transform;
+};
+
+layout(set=0, binding=0) uniform Config {
+    vec4 clear;
+    vec2 resolution;
+    mat3 view;
+};
+
+layout(set=1, binding=0) readonly buffer Segments {
+    float segments[];
+};
+
+layout(set=1, binding=1) readonly buffer Winding {
+    int winding[];
+};
+
+layout(set=1, binding=2) readonly buffer Paths {
+    Path path[];
+};
+
+layout(set=1, binding=3, rgba8) writeonly uniform image2D fill;
+
+float ccw(vec2 a, vec2 b, vec2 c) {
+    return (c.y - a.y) * (b.x - a.x) - (b.y - a.y) * (c.x - a.x);
+}
+
+bool intersects(vec4 a, vec4 b) {
+    return ccw(a.xy, b.xy, b.zw) > 0 != ccw(a.zw, b.xy, b.zw) > 0 &&
+           ccw(a.xy, a.zw, b.xy) > 0 != ccw(a.xy, a.zw, b.zw) > 0;
+}
+
+float find_x(vec4 segment, float y) {
+    return segment.x + (y - segment.y) * (segment.z - segment.x) / (segment.w - segment.y);
+}
+
+void main() {
+    bool clear_pixel = true;
+    vec3 view_position = view * vec3(
+        2 * gl_GlobalInvocationID.x / resolution.x - 1.0,
+        -(2 * gl_GlobalInvocationID.y / resolution.y - 1.0),
+        1
+    );
+
+    uint idx = 0;
+    for (uint i = 0; i < path.length(); i++) {
+        vec3 position = path[i].transform * view_position;
+
+        if (position.x > path[i].bounds.x && position.x < path[i].bounds.z &&
+            position.y > path[i].bounds.y && position.y < path[i].bounds.w
+        ) {
+            float left_bound = -1.0;
+            float right_bound = 1.0;
+            int left_winding = -1;
+            int right_winding = 1;
+            vec4 ray = vec4(-1.0, position.y, 1.0, position.y);
+            for (uint j = 0; j < path[i].segments; j++) {
+                vec4 segment = vec4(
+                    segments[4*idx], segments[4*idx+1],
+                    segments[4*idx+2], segments[4*idx+3]
+                );
+                if (intersects(segment, ray)) {
+                    float x = find_x(segment, position.y);
+                    if (x < position.x && x > left_bound) {
+                        left_bound = x;
+                        left_winding = winding[idx];
+                    } else if (x > position.x && x < right_bound) {
+                        right_bound = x;
+                        right_winding = winding[idx];
+                    }
+                }
+                idx++;
+            }
+
+            if (position.x > left_bound && left_winding > 0 &&
+                position.x < right_bound && right_winding < 0
+            ) {
+                imageStore(
+                    fill,
+                    ivec2(gl_GlobalInvocationID.xy),
+                    path[i].color
+                );
+                clear_pixel = false;
+            }
+        }
+    }
+
+    if (clear_pixel) {
+        imageStore(fill, ivec2(gl_GlobalInvocationID.xy), clear);
+    }
+}

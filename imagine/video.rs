@@ -1,7 +1,7 @@
 /*******************************************************************************
   video.rs
 ********************************************************************************
-  Copyright 2023 Menelik Eyasu
+  Copyright 2024 Menelik Eyasu
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ extern crate ffmpeg_sys_next as ffmpeg;
 
 use ffmpeg::*;
 use core::ffi::CStr;
-use pyo3::prelude::*;
 use std::ffi::CString;
 use core::ffi::c_void;
 
@@ -127,10 +126,10 @@ impl Video {
       (*self.image_stream).r_frame_rate = frame_rate;
       (*self.image_stream).avg_frame_rate = frame_rate;
       (*self.image_context).codec_id = AVCodecID::AV_CODEC_ID_MPEG4;
-      (*self.image_context).gop_size = 12;
+      // (*self.image_context).gop_size = 12;
       (*self.image_context).width = width;
       (*self.image_context).height = height;
-      // (*self.image_context).bit_rate = 400000;
+      // (*self.image_context).bit_rate = 10000;
       (*self.image_context).time_base = time_base;
       (*self.image_context).framerate = frame_rate;
       (*self.image_context).pix_fmt = AVPixelFormat::AV_PIX_FMT_YUV420P;
@@ -226,9 +225,7 @@ impl Video {
     packet: *mut AVPacket,
     frame: *const AVFrame
   ) {
-  // ) -> Result<()> {
     let mut status = avcodec_send_frame(encoder, frame);
-    // if status < 0 {}
     while status >= 0 {
       status = avcodec_receive_packet(encoder, packet);
       if status == AVERROR_EOF || status == FFMPEG_AVERROR(EAGAIN) {

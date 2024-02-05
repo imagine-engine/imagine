@@ -1,7 +1,7 @@
 /*******************************************************************************
   shader.rs
 ********************************************************************************
-  Copyright 2023 Menelik Eyasu
+  Copyright 2024 Menelik Eyasu
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ use std::fs;
 use std::str;
 use std::path::Path;
 use pyo3::prelude::*;
-use super::main_scene::MAIN_SCENE;
+use crate::instance::IMAGINE;
 
 #[pyclass]
 pub struct Shader {
@@ -39,7 +39,7 @@ impl Shader {
     }
 
     Self {
-      module: MAIN_SCENE.lock().unwrap().renderer.create_shader(
+      module: IMAGINE.lock().unwrap().output.render_graph.context.load_shader(
         filename,
         &source,
         shader_type

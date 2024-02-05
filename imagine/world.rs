@@ -1,0 +1,103 @@
+/*******************************************************************************
+  world.rs
+********************************************************************************
+  Copyright 2024 Menelik Eyasu
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+*******************************************************************************/
+
+use pyo3::prelude::*;
+use crate::instance::IMAGINE;
+use std::collections::{HashMap, BTreeMap};
+use crate::render::primitives::*;
+use crate::controller::{Object2DController, Object3DController};
+
+pub enum Domain {
+  World3D,
+  World2D,
+  Default
+}
+
+pub struct World {
+  pub age: f32,
+  pub domain: Domain,
+  pub camera_3d: Camera3D,
+  pub camera_2d: Camera2D,
+  pub lights: HashMap<i32, WorldLight>,
+  pub meshes: HashMap<i32, Object3D>,
+  pub paths: BTreeMap<i32, PathConfig>,
+  pub segments: Vec<f32>,
+  pub windings: Vec<i32>,
+}
+
+impl World {
+  pub fn add_mesh(&mut self, object: Object3D) -> Object3DController {
+    let id = self.meshes.len() as i32;
+    self.meshes.insert(id, object);
+
+    Object3DController { id }
+  }
+
+  pub fn add_path(&mut self, object: PathConfig) -> Object2DController {
+    // let id = self.objects_2d.len() as i32;
+    // self.objects_2d.insert(id, object);
+
+    // Object2DController { id }
+    Object2DController { id: 0 }
+  }
+
+  // pub fn add_sprite(&mut self, object: SpriteConfig) -> Object2DController {
+  //   let id = self.sprites.len() as i32;
+  //   self.sprites.insert(id, object);
+
+  //   Object2DController { id }
+  // }
+
+  // pub fn add_light(&mut self, light: Light) -> LightController {
+  //   let id = self.lights.len() as i32;
+  //   self.lights.insert(id, light);
+
+  //   LightController { id }
+  // }
+
+  pub fn access_mesh<F>(
+    &mut self,
+    id: i32,
+    modify: F
+  ) where F: Fn(&mut Object3D) {
+    if self.meshes.contains_key(&id) {
+      self.meshes.entry(id).and_modify(modify);
+    }
+  }
+
+  pub fn access_path<F>(
+    &mut self,
+    id: i32,
+    modify: F
+  ) where F: Fn(&mut PathConfig) {
+    if self.paths.contains_key(&id) {
+      self.paths.entry(id).and_modify(modify);
+    }
+  }
+}
+
+#[pyclass(name="World")]
+pub struct PyWorld;
+
+#[pymethods]
+impl PyWorld {
+  #[getter(age)]
+  fn get_age(&self) -> PyResult<f32> {
+    Ok(IMAGINE.lock().unwrap().world.age)
+  }
+}

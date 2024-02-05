@@ -1,7 +1,7 @@
 /*******************************************************************************
   frame.rs
 ********************************************************************************
-  Copyright 2023 Menelik Eyasu
+  Copyright 2024 Menelik Eyasu
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -16,12 +16,9 @@
   limitations under the License.
 *******************************************************************************/
 
-use std::fs::File;
-use std::path::Path;
 use pyo3::prelude::*;
-use super::color::Color;
+use crate::color::Color;
 use pyo3::types::PyTuple;
-use png::{BitDepth, ColorType, Encoder};
 
 #[pyclass]
 pub struct Frame {
@@ -94,18 +91,18 @@ impl Frame {
     })
   }
 
-  #[pyo3(signature = (filename="frame.png"))]
-  pub fn save(&self, filename: &str) {
-    let output_file = File::create(Path::new(filename)).unwrap();
-    let mut encoder = Encoder::new(
-      output_file,
-      self.width,
-      self.height,
-    );
-    encoder.set_color(ColorType::Rgba);
-    encoder.set_depth(BitDepth::Eight);
+  // #[pyo3(signature = (filename="frame.png"))]
+  // pub fn save(&self, filename: &str) {
+  //   let output_file = File::create(Path::empty(filename)).unwrap();
+  //   let mut encoder = Encoder::new(
+  //     output_file,
+  //     self.width,
+  //     self.height,
+  //   );
+  //   encoder.set_color(ColorType::Rgba);
+  //   encoder.set_depth(BitDepth::Eight);
 
-    let mut image = encoder.write_header().unwrap();
-    image.write_image_data(&self.pixels).unwrap();
-  }
+  //   let mut image = encoder.write_header().unwrap();
+  //   image.write_image_data(&self.pixels).unwrap();
+  // }
 }

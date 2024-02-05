@@ -1,7 +1,7 @@
 /*******************************************************************************
   lib.rs
 ********************************************************************************
-  Copyright 2023 Menelik Eyasu
+  Copyright 2024 Menelik Eyasu
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -16,51 +16,40 @@
   limitations under the License.
 *******************************************************************************/
 
-use pyo3::prelude::*;
-use pyo3::types::PyDict;
-use pyo3::wrap_pyfunction;
-
 mod math;
 mod color;
 mod frame;
 mod video;
+mod world;
 mod camera;
+mod output;
+mod render;
 mod shader;
-mod renderer;
-mod components;
-mod main_scene;
-mod scene_children;
+mod loaders;
+mod objects;
+mod instance;
+mod animation;
+mod controller;
 
+use shader::*;
+use loaders::*;
+use math::Vector;
 use color::Color;
+use instance::wait;
 use camera::Camera;
-use main_scene::wait;
-use renderer::render;
+use world::PyWorld;
+use output::PyOutput;
 use pyo3::wrap_pymodule;
-use components::svg::svg;
-use math::vector::Vector;
-use shader::vertex_shader;
-use shader::compute_shader;
-use shader::fragment_shader;
-use main_scene::PyMainScene;
-use components::basic_shapes::square;
-use components::basic_shapes::triangle;
-use components::basic_shapes::rectangle;
+use objects::basic_shapes::*;
+
+use pyo3::prelude::*;
+use pyo3::types::PyDict;
+use pyo3::wrap_pyfunction;
 
 #[pymodule]
 #[pyo3(name = "math")]
 fn math_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_class::<Vector>()?;
-
-  Ok(())
-}
-
-#[pymodule]
-#[pyo3(name = "components")]
-fn component_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-  m.add_function(wrap_pyfunction!(svg, m)?)?;
-  m.add_function(wrap_pyfunction!(square, m)?)?;
-  m.add_function(wrap_pyfunction!(triangle, m)?)?;
-  m.add_function(wrap_pyfunction!(rectangle, m)?)?;
 
   Ok(())
 }
@@ -76,27 +65,53 @@ fn shader_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 }
 
 #[pymodule]
+#[pyo3(name = "objects")]
+fn object_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+  m.add_function(wrap_pyfunction!(square, m)?)?;
+  m.add_function(wrap_pyfunction!(triangle, m)?)?;
+  m.add_function(wrap_pyfunction!(rectangle, m)?)?;
+  m.add_function(wrap_pyfunction!(pentagon, m)?)?;
+  m.add_function(wrap_pyfunction!(star, m)?)?;
+
+  Ok(())
+}
+
+#[pymodule]
+#[pyo3(name = "loaders")]
+fn loader_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+  m.add_function(wrap_pyfunction!(load_mesh, m)?)?;
+  // m.add_function(wrap_pyfunction!(load_svg, m)?)?;
+  // m.add_function(wrap_pyfunction!(load_scene, m)?)?;
+
+  Ok(())
+}
+
+#[pymodule]
 fn imagine(_py: Python, m: &PyModule) -> PyResult<()> {
   m.add_wrapped(wrap_pymodule!(math_module))?;
   m.add_wrapped(wrap_pymodule!(shader_module))?;
-  m.add_wrapped(wrap_pymodule!(component_module))?;
+  m.add_wrapped(wrap_pymodule!(loader_module))?;
+  m.add_wrapped(wrap_pymodule!(object_module))?;
 
   let sys = PyModule::import(_py, "sys")?;
   let sys_modules: &PyDict = sys.getattr("modules")?.downcast()?;
   sys_modules.set_item("imagine.math", m.getattr("math")?)?;
   sys_modules.set_item("imagine.shader", m.getattr("shaders")?)?;
-  sys_modules.set_item("imagine.components", m.getattr("components")?)?;
+  sys_modules.set_item("imagine.loaders", m.getattr("loaders")?)?;
+  sys_modules.set_item("imagine.objects", m.getattr("objects")?)?;
 
   m.add_class::<Color>()?;
 
-  let main_scene = Py::new(_py, PyMainScene {}).unwrap();
-  m.add("main_scene", main_scene)?;
-  m.add_function(wrap_pyfunction!(wait, m)?)?;
+  let world = Py::new(_py, PyWorld {}).unwrap();
+  m.add("world", world)?;
+
+  let output = Py::new(_py, PyOutput {}).unwrap();
+  m.add("output", output)?;
 
   let camera = Py::new(_py, Camera::new()).unwrap();
   m.add("camera", camera)?;
 
-  m.add_function(wrap_pyfunction!(render, m)?)?;
+  m.add_function(wrap_pyfunction!(wait, m)?)?;
 
   Ok(())
 }

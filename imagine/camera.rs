@@ -1,7 +1,7 @@
 /*******************************************************************************
   camera.rs
 ********************************************************************************
-  Copyright 2023 Menelik Eyasu
+  Copyright 2024 Menelik Eyasu
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -16,12 +16,8 @@
   limitations under the License.
 *******************************************************************************/
 
-use std::path::Path;
 use pyo3::prelude::*;
-use super::frame::Frame;
-use super::main_scene::MAIN_SCENE;
-use super::video::Video;
-// use pyo3::exceptions::PyRuntimeError;
+use crate::instance::IMAGINE;
 
 #[pyclass]
 pub struct Camera {
@@ -41,7 +37,7 @@ impl Camera {
 
   #[getter(recording)]
   fn get_recording_status(&self) -> PyResult<bool> {
-    Ok(MAIN_SCENE.lock().unwrap().output.writing)
+    Ok(IMAGINE.lock().unwrap().output.video.writing)
   }
 
   // pub fn resolution(&self) -> (i32, i32) {
@@ -62,29 +58,22 @@ impl Camera {
     bitrate: usize
   ) {
     self.recording = true;
-    MAIN_SCENE.lock().unwrap().output.make(
+    IMAGINE.lock().unwrap().output.start_video(
       path,
       fps,
       width,
       height,
-      // bitrate
+      bitrate
     );
   }
 
   pub fn stop(&mut self) {
     self.recording = false;
-    MAIN_SCENE.lock().unwrap().output.free();
+    IMAGINE.lock().unwrap().output.stop();
   }
 
   // #[pyo3(signature = (filename="snapshot.png"))]
   // fn snapshot(&self, filename: &str) {
-  //   let renderer = MAIN_SCENE.lock().unwrap().renderer;
-  //   Frame {
-  //     width: renderer.size.width,
-  //     height: renderer.size.height,
-  //     pixels: futures::executor::block_on(
-  //       renderer.render()
-  //     )
-  //   }.save(filename);
+  //   IMAGINE.lock().unwrap().snapshot("")
   // }
 }

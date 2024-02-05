@@ -8,12 +8,20 @@ path = "imagine/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+bytemuck = { version = "1.13.1", features = [ "derive" ] }
 ffmpeg-sys-next = "6.0.1"
 futures = "0.3.28"
 futures-intrusive = "0.5.0"
 lazy_static = "1.4.0"
 nalgebra = "0.32.2"
-png = "0.17.7"
 pyo3 = { version = "0.18.1", features = ["extension-module"] }
 shaderc = "0.8.2"
 wgpu = { version = "0.17.0", features = ["spirv"] }
+tobj = "4.0.0"
+delaunator = "1.0.2"
+usvg = "0.37.0"
+
+[dependencies.image]
+version = "0.24"
+default-features = false
+features = ["png", "jpeg"]

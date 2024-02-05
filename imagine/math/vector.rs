@@ -1,7 +1,7 @@
 /*******************************************************************************
   vector.rs
 ********************************************************************************
-  Copyright 2023 Menelik Eyasu
+  Copyright 2024 Menelik Eyasu
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ pub struct Vector {
 #[pymethods]
 impl Vector {
   #[new]
-  pub fn new(x: f32, y: f32, z: Option<f32>) -> Self {
+  pub fn new(x: f32, y: f32, z: f32) -> Self {
     Self {
       x,
       y,
-      z: z.unwrap_or(0.0)
+      z
     }
   }
 

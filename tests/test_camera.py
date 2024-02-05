@@ -1,7 +1,7 @@
 # =============================================================================
 # test_camera.py
 # =============================================================================
-# Copyright 2023 Menelik Eyasu
+# Copyright 2024 Menelik Eyasu
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,6 @@ import os
 from imagine import *
 
 def test_camera():
-  assert camera.output.fps == 24
-  assert camera.output.width == 1920
-  assert camera.output.height == 1080
   assert camera.recording == False
 
   camera.snapshot()
@@ -33,8 +30,6 @@ def test_camera():
 
   camera.record()
   assert camera.recording == True
+  assert 'video.mp4' in os.listdir()
   camera.stop()
   assert camera.recording == False
-
-  os.remove('snapshot.png')
-  os.remove('test.png')

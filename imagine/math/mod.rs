@@ -1,7 +1,7 @@
 /*******************************************************************************
   mod.rs
 ********************************************************************************
-  Copyright 2023 Menelik Eyasu
+  Copyright 2024 Menelik Eyasu
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,3 +17,5 @@
 *******************************************************************************/
 
 pub mod vector;
+
+pub use vector::Vector;

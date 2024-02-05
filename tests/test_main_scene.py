@@ -1,7 +1,7 @@
 # =============================================================================
-# test_main_scene.py
+# test_WORLD.py
 # =============================================================================
-# Copyright 2023 Menelik Eyasu
+# Copyright 2024 Menelik Eyasu
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,14 +18,14 @@
 
 from imagine import *
 
-def test_default_main_scene():
-  assert main_scene.duration == 0
-  assert main_scene.lights == []
-  assert main_scene.objects == []
+def test_default_WORLD():
+  assert WORLD.age == 0
+  assert WORLD.lights == []
+  assert WORLD.objects == []
 
 def test_wait():
-  assert main_scene.duration == 0
+  assert WORLD.age == 0
   wait(13)
-  assert main_scene.duration == 13
+  assert WORLD.age == 13
   wait(5)
-  assert main_scene.duration == 18
+  assert WORLD.age == 18
