@@ -17,9 +17,10 @@
 *******************************************************************************/
 
 use pyo3::prelude::*;
+use nalgebra::Vector2;
 use crate::math::Vector;
+use crate::animation::*;
 use crate::instance::IMAGINE;
-use crate::animation::Animation;
 
 pub struct Object2DController {
   pub id: i32
@@ -40,6 +41,19 @@ pub struct Camera3DController {
 impl Object2DController {
   pub fn animate(&self, animation: Animation) {
     IMAGINE.lock().unwrap().run(animation.duration, &[animation]);
+  }
+
+  pub fn rotate(&self, duration: f32, angle: f32) {
+    self.animate(Animation {
+      duration,
+      update: AnimationUpdate::Transform2D(
+        self.id,
+        Vector2::new(1.0, 1.0),
+        Vector2::new(0.0, 0.0),
+        angle
+      ),
+      interpolation: Interpolation::Linear
+    });
   }
 
   pub fn update_transform(&self, scale: Vector, position: Vector, rotation: f32) {}

@@ -38,23 +38,26 @@ lazy_static! {
       lights: HashMap::new(),
       camera_2d: Camera2D::default(),
       camera_3d: Camera3D::default(),
-      segments: vec![
-        -0.5, 0.5, -0.8, -0.5,
-        0.5, -0.5, 0.8, 0.5,
-        -0.3, 0.3, -0.4, -0.3,
-        0.3, -0.3, 0.4, 0.3
-      ],
-      windings: vec![1, -1, -1, 1],
-      paths: BTreeMap::from([
-        (1, PathConfig {
-          segments: 4,
-          bounds: [-0.8, -0.5, 0.8, 0.5],
-          scale: Vector2::new(1.0, 1.0),
-          position: Vector2::new(0.0, 0.0),
-          rotation: 0.0,
-          transform: Matrix3::identity()
-        })
-      ]),
+      segments: Vec::new(),
+      windings: Vec::new(),
+      paths: BTreeMap::new(),
+      // segments: vec![
+      //   -0.5, 0.5, -0.8, -0.5,
+      //   0.5, -0.5, 0.8, 0.5,
+      //   -0.3, 0.3, -0.4, -0.3,
+      //   0.3, -0.3, 0.4, 0.3
+      // ],
+      // windings: vec![1, -1, -1, 1],
+      // paths: BTreeMap::from([
+      //   (1, PathConfig {
+      //     segments: 4,
+      //     bounds: [-0.8, -0.5, 0.8, 0.5],
+      //     scale: Vector2::new(1.0, 1.0),
+      //     position: Vector2::new(0.0, 0.0),
+      //     rotation: 0.0,
+      //     transform: Matrix3::identity()
+      //   })
+      // ]),
       meshes: HashMap::from([
         (1, Object3D {
           vertices: vec![
@@ -118,11 +121,13 @@ pub struct App {
 
 impl App {
   pub fn wait(&mut self, t: f32) {
-    self.world.age += t;
-    self.output.write(
-      &self.world,
-      (t * self.output.video.get_fps().unwrap() as f32) as i32
-    );
+    if let Some(fps) = self.output.video.get_fps() {
+      self.world.age += t;
+      self.output.write(
+        &self.world,
+        (t * fps as f32) as i32
+      );
+    }
   }
 
   pub fn run(&mut self, duration: f32, animations: &[Animation]) {

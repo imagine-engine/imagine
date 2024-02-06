@@ -52,9 +52,16 @@ impl World {
     Object3DController { id }
   }
 
-  pub fn add_path(&mut self, object: PathConfig) -> Object2DController {
+  pub fn add_path(
+    &mut self,
+    segments: Vec<f32>,
+    windings: Vec<i32>,
+    config: PathConfig
+  ) -> Object2DController {
     let id = self.paths.len() as i32;
-    self.paths.insert(id, object);
+    self.paths.insert(id, config);
+    self.segments.extend(segments);
+    self.windings.extend(windings);
 
     Object2DController { id }
   }

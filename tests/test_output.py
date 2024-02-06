@@ -43,3 +43,7 @@ def test_record():
 
   stop()
   assert not output.recording
+
+  # Clean up
+  os.remove('video.mp4')
+  os.remove('test.mp4')

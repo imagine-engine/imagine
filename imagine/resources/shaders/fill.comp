@@ -49,6 +49,7 @@ void main() {
         -(2 * gl_GlobalInvocationID.y / resolution.y - 1.0),
         1
     );
+    view_position.x *= resolution.x / resolution.y;
 
     uint idx = 0;
     for (uint i = 0; i < path.length(); i++) {

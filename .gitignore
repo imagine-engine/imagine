@@ -1,8 +1,8 @@
 target
 *.so
+*.mp4
 imagine_engine.egg-info/
 Cargo.lock
 .pytest_cache
-__pycache__
+__pycache__/
 .DS_Store
-*.mp4

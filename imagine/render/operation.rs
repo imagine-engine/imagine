@@ -534,7 +534,11 @@ impl RenderOperation {
           pass.set_pipeline(pipeline);
           pass.set_bind_group(0, &binding, &[]);
           pass.set_bind_group(1, &bindings, &[]);
-          pass.dispatch_workgroups(context.size.width, context.size.height, 1);
+          pass.dispatch_workgroups(
+            (context.size.width as f32 / 16.0).ceil() as u32,
+            (context.size.height as f32 / 16.0).ceil() as u32,
+            1
+          );
         }
 
         if let (

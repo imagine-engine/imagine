@@ -1,5 +1,5 @@
 # =============================================================================
-# conftest.py
+# rotating_cube.py
 # =============================================================================
 # Copyright 2024 Menelik Eyasu
 
@@ -16,21 +16,12 @@
 # limitations under the License.
 # =============================================================================
 
-import os
-import glob
-import shutil
-import subprocess
+from imagine import *
+from imagine.objects import Square
 
-def pytest_sessionstart(session):
-    lib = glob.glob('tests/imagine*.so')
-    root_lib = glob.glob('imagine.*.so')
-    if not lib and root_lib:
-        shutil.move(root_lib[0], f'tests/{root_lib[0]}')
-    else:
-        subprocess.call(['cargo', 'build'])
-        shutil.move(glob.glob('target/debug/*.dylib')[0], 'tests/imagine.so')
+record()
 
-def pytest_sessionfinish(session, exitstatus):
-    lib = glob.glob('tests/imagine.*.so')
-    if lib:
-        shutil.move(lib[0], os.getcwd())
+square = Square(size=0.5)
+square.rotate(t=5)
+
+stop()

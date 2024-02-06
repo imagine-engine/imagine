@@ -425,7 +425,7 @@ impl PathConfig {
     PathUniform {
       segments: self.segments,
       _padding: [0.0, 0.0, 0.0],
-      color: [1.0, 0.0, 0.0, 1.0],
+      color: [1.0, 1.0, 1.0, 1.0],
       bounds: self.bounds,
       transform: [
         [self.transform.m11, self.transform.m21, self.transform.m31, 0.0],
@@ -516,9 +516,9 @@ impl Camera2D {
     Self {
       aspect: 16.0/9.0,
       rotation: 0.0,
-      scale: Vector2::new(0.4, 0.4),
+      scale: Vector2::new(1.0, 1.0),
       position: Vector2::new(0.0, 0.0),
-      view: Matrix3::new_nonuniform_scaling(&Vector2::new(0.4, 0.711111111))
+      view: Matrix3::identity()
     }
   }
 }
