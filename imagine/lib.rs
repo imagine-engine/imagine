@@ -70,7 +70,6 @@ fn object_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(triangle, m)?)?;
   m.add_function(wrap_pyfunction!(rectangle, m)?)?;
   m.add_function(wrap_pyfunction!(pentagon, m)?)?;
-  m.add_function(wrap_pyfunction!(star, m)?)?;
 
   Ok(())
 }

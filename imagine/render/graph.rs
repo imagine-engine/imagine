@@ -16,6 +16,7 @@
   limitations under the License.
 *******************************************************************************/
 
+use nalgebra::Vector2;
 use wgpu::util::DeviceExt;
 use std::collections::HashMap;
 use crate::world::{World, Domain};
@@ -185,6 +186,7 @@ impl RenderGraph {
         //     bytemuck::cast_slice(&[world.camera_2d.uniform()])
         //   );
         // }
+
         if let Some(RenderResource::Uniform { buffer, binding }) = self.resources.get("fill_config") {
           self.context.queue.write_buffer(
             &buffer,
@@ -204,21 +206,93 @@ impl RenderGraph {
 
         if let Some(RenderResource::Layer(
           segment_buffer,
-          winding_buffer,
           path_buffer,
           _
         )) = self.resources.get_mut("world_2d") {
+          let mut idx = 0;
+          let mut offset = 0;
+          let mut segment_count = 0;
+          let mut segments = Vec::new();
+          let mut paths: Vec<PathUniform> = Vec::new();
+
+          for path in world.paths.values() {
+            for i in offset..path.path_segments {
+              let controls = world.controls[offset+i];
+              match controls {
+                0 => {
+                  segments.push(world.points[idx]);
+                  segments.push(world.points[idx+1]);
+                  segments.push(world.points[idx+2]);
+                  segments.push(world.points[idx+3]);
+                  segment_count += 1;
+                },
+                1 => {
+                  let p1 = Vector2::new(world.points[idx], world.points[idx+1]);
+                  let p2 = Vector2::new(world.points[idx+4], world.points[idx+5]);
+                  let c1 = Vector2::new(world.points[idx+2], world.points[idx+3]);
+                  segments.push(p1.x);
+                  segments.push(p1.y);
+
+                  for i in 1..10 {
+                    let t = i as f32 / 10.0;
+                    let pt = (1.0 - t) * (1.0 - t) * p1 + 2.0 * (1.0 - t) * t * c1 + t * t * p2;
+                    segments.push(pt.x);
+                    segments.push(pt.y);
+                    segments.push(pt.x);
+                    segments.push(pt.y);
+                  }
+
+                  segments.push(p2.x);
+                  segments.push(p2.y);
+                  segment_count += 10;
+                },
+                2 => {
+                  let p1 = Vector2::new(world.points[idx], world.points[idx+1]);
+                  let p2 = Vector2::new(world.points[idx+6], world.points[idx+7]);
+                  let c1 = Vector2::new(world.points[idx+2], world.points[idx+3]);
+                  let c2 = Vector2::new(world.points[idx+4], world.points[idx+5]);
+                  segments.push(p1.x);
+                  segments.push(p1.y);
+
+                  for i in 1..100 {
+                    let t = i as f32 / 100.0;
+                    let m = (1.0 - t) * (1.0 - t) * p1 + 2.0 * (1.0 - t) * t * p2 + t * t * c1;
+                    segments.push(m.x);
+                    segments.push(m.y);
+                    segments.push(m.x);
+                    segments.push(m.y);
+                  }
+
+                  segments.push(p2.x);
+                  segments.push(p2.y);
+                  segment_count += 100;
+                },
+                _ => ()
+              }
+
+              idx += (4 + 2 * controls) as usize;
+            }
+
+            paths.push(PathUniform {
+              opacity: path.opacity,
+              segments: segment_count,
+              _padding: [0.0, 0.0],
+              color: [1.0, 1.0, 1.0, 1.0],
+              bounds: path.bounds,
+              transform: [
+                [path.transform.m11, path.transform.m21, path.transform.m31, 0.0],
+                [path.transform.m12, path.transform.m22, path.transform.m32, 0.0],
+                [path.transform.m13, path.transform.m23, path.transform.m33, 0.0]
+              ]
+            });
+
+            offset += path.path_segments;
+          }
+
           self.context.queue.write_buffer(
-            &segment_buffer, 0, bytemuck::cast_slice(&world.segments)
-          );
-          self.context.queue.write_buffer(
-            &winding_buffer, 0, bytemuck::cast_slice(&world.windings)
+            &segment_buffer, 0, bytemuck::cast_slice(&segments)
           );
 
-          let mut paths: Vec<PathUniform> = Vec::new();
-          for path in world.paths.values() {
-            paths.push(path.uniform());
-          }
           self.context.queue.write_buffer(
             &path_buffer, 0, bytemuck::cast_slice(&paths)
           );

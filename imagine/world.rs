@@ -40,8 +40,8 @@ pub struct World {
   pub lights: HashMap<i32, WorldLight>,
   pub meshes: HashMap<i32, Object3D>,
   pub paths: BTreeMap<i32, PathConfig>,
-  pub segments: Vec<f32>,
-  pub windings: Vec<i32>,
+  pub points: Vec<f32>,
+  pub controls: Vec<u8>,
 }
 
 impl World {
@@ -54,14 +54,14 @@ impl World {
 
   pub fn add_path(
     &mut self,
-    segments: Vec<f32>,
-    windings: Vec<i32>,
+    points: &Vec<f32>,
+    controls: &Vec<u8>,
     config: PathConfig
   ) -> Object2DController {
     let id = self.paths.len() as i32;
     self.paths.insert(id, config);
-    self.segments.extend(segments);
-    self.windings.extend(windings);
+    self.points.extend(points);
+    self.controls.extend(controls);
 
     Object2DController { id }
   }
@@ -111,5 +111,17 @@ impl PyWorld {
   #[getter(age)]
   fn get_age(&self) -> PyResult<f32> {
     Ok(IMAGINE.lock().unwrap().world.age)
+  }
+
+  #[cfg(debug_assertions)]
+  #[getter(points)]
+  fn get_points(&self) -> PyResult<Vec<f32>> {
+    Ok(IMAGINE.lock().unwrap().world.points.clone())
+  }
+
+  #[cfg(debug_assertions)]
+  #[getter(segments)]
+  fn get_segments(&self) -> PyResult<Vec<f32>> {
+    Ok(IMAGINE.lock().unwrap().world.segments.clone())
   }
 }

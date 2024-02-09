@@ -387,13 +387,6 @@ impl RenderOperation {
       mapped_at_creation: false
     });
 
-    let winding_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
-      label: None,
-      size: context.max_paths * std::mem::size_of::<i32>() as u64,
-      usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-      mapped_at_creation: false
-    });
-
     let path_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
       label: None,
       size: context.max_paths * std::mem::size_of::<f32>() as u64,
@@ -429,16 +422,6 @@ impl RenderOperation {
             binding: 2,
             count: None,
             visibility: wgpu::ShaderStages::COMPUTE,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Storage { read_only: true },
-                has_dynamic_offset: false,
-                min_binding_size: None,
-            }
-          },
-          wgpu::BindGroupLayoutEntry {
-            binding: 3,
-            count: None,
-            visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::StorageTexture {
               view_dimension: wgpu::TextureViewDimension::D2,
               format: wgpu::TextureFormat::Rgba8Unorm,
@@ -464,14 +447,10 @@ impl RenderOperation {
         },
         wgpu::BindGroupEntry {
           binding: 1,
-          resource: winding_buffer.as_entire_binding()
-        },
-        wgpu::BindGroupEntry {
-          binding: 2,
           resource: path_buffer.as_entire_binding()
         },
         wgpu::BindGroupEntry {
-          binding: 3,
+          binding: 2,
           resource: wgpu::BindingResource::TextureView(&fill_texture.view),
         }
       ]
@@ -503,7 +482,6 @@ impl RenderOperation {
     });
     resources.insert(String::from("world_2d"), RenderResource::Layer(
       segment_buffer,
-      winding_buffer,
       path_buffer,
       fill_bindings
     ));
@@ -521,7 +499,7 @@ impl RenderOperation {
         );
 
         if let (
-          Some(RenderResource::Layer(_, _, _, bindings)),
+          Some(RenderResource::Layer(_, _, bindings)),
           Some(RenderResource::Uniform { buffer, binding })
         ) = (
           resources.get("world_2d"),

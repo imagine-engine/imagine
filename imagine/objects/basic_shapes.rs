@@ -47,7 +47,7 @@ pub fn cube() -> PyResult<Mesh> {
 }
 
 #[pyfunction]
-#[pyo3(name="Triangle", signature=(size=1.0))]
+#[pyo3(name="Triangle", signature=(size=5.0))]
 pub fn triangle(size: f32) -> PyResult<Path> {
   let half_size = size / 2.0;
   let mut path = Path::empty();
@@ -60,7 +60,7 @@ pub fn triangle(size: f32) -> PyResult<Path> {
 }
 
 #[pyfunction]
-#[pyo3(name="Square", signature=(size=1.0))]
+#[pyo3(name="Square", signature=(size=5.0))]
 pub fn square(size: f32) -> PyResult<Path> {
   let half_size = size / 2.0;
 
@@ -75,7 +75,7 @@ pub fn square(size: f32) -> PyResult<Path> {
 }
 
 #[pyfunction]
-#[pyo3(name="Rectangle", signature=(width=2.0, height=1.0))]
+#[pyo3(name="Rectangle", signature=(width=10.0, height=5.0))]
 pub fn rectangle(width: f32, height: f32) -> PyResult<Path> {
   let half_width = width / 2.0;
   let half_height = height / 2.0;
@@ -91,41 +91,15 @@ pub fn rectangle(width: f32, height: f32) -> PyResult<Path> {
 }
 
 #[pyfunction]
-#[pyo3(name="Pentagon", signature=(radius=1.0))]
+#[pyo3(name="Pentagon", signature=(radius=50.0))]
 pub fn pentagon(radius: f32) -> PyResult<Path> {
   let mut path = Path::empty();
   path.move_to(0.0, 0.5*radius);
-  path.line_to(0.476*radius, 0.155*radius);
-  path.line_to(0.294*radius, -0.405*radius);
-  path.line_to(-0.294*radius, -0.405*radius);
   path.line_to(-0.476*radius, 0.155*radius);
+  path.line_to(-0.294*radius, -0.405*radius);
+  path.line_to(0.294*radius, -0.405*radius);
+  path.line_to(0.476*radius, 0.155*radius);
   path.close();
 
   Ok(path)
-}
-
-#[pyfunction]
-#[pyo3(name="Star", signature=(radius=1.0))]
-pub fn star(radius: f32) -> PyResult<Path> {
-  let mut path = Path::empty();
-  path.move_to(0.0, 0.5*radius);
-  path.line_to(0.476*radius, 0.155*radius);
-  path.line_to(0.294*radius, -0.405*radius);
-  path.line_to(-0.294*radius, -0.405*radius);
-  path.line_to(-0.476*radius, 0.155*radius);
-  path.close();
-
-  Ok(path)
-  // Ok(Polygon::new(vec![
-  //   [0.0, 0.5*radius],
-  //   [0.1123*radius, 0.1545*radius],
-  //   [0.4755*radius, 0.1545*radius],
-  //   [0.1816*radius, -0.059*radius],
-  //   [0.2939*radius, -0.4045*radius],
-  //   [0.0, -0.191*radius],
-  //   [-0.2939*radius, -0.4045*radius],
-  //   [-0.1816*radius, -0.059*radius],
-  //   [-0.4755*radius, 0.1545*radius],
-  //   [-0.1123*radius, 0.1545*radius]
-  // ]))
 }

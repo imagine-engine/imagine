@@ -394,16 +394,18 @@ impl ModelMaterial {
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PathUniform {
+  pub opacity: f32,
   pub segments: u32,
-  pub _padding: [f32; 3],
+  pub _padding: [f32; 2],
   pub color: [f32; 4],
   pub bounds: [f32; 4],
   pub transform: [[f32; 4]; 3]
 }
 
 pub struct PathConfig {
-  pub segments: u32,
+  pub opacity: f32,
   pub bounds: [f32; 4],
+  pub path_segments: usize,
   pub scale: Vector2<f32>,
   pub position: Vector2<f32>,
   pub rotation: f32,
@@ -418,22 +420,6 @@ pub struct Object3D {
   pub position: Vector3<f32>,
   pub rotation: Vector3<f32>,
   pub transform: Matrix4<f32>
-}
-
-impl PathConfig {
-  pub fn uniform(&self) -> PathUniform {
-    PathUniform {
-      segments: self.segments,
-      _padding: [0.0, 0.0, 0.0],
-      color: [1.0, 1.0, 1.0, 1.0],
-      bounds: self.bounds,
-      transform: [
-        [self.transform.m11, self.transform.m21, self.transform.m31, 0.0],
-        [self.transform.m12, self.transform.m22, self.transform.m32, 0.0],
-        [self.transform.m13, self.transform.m23, self.transform.m33, 0.0]
-      ]
-    }
-  }
 }
 
 impl Object3D {
@@ -516,9 +502,9 @@ impl Camera2D {
     Self {
       aspect: 16.0/9.0,
       rotation: 0.0,
-      scale: Vector2::new(1.0, 1.0),
+      scale: Vector2::new(100.0, 100.0),
       position: Vector2::new(0.0, 0.0),
-      view: Matrix3::identity()
+      view: Matrix3::new_nonuniform_scaling(&Vector2::new(100.0, 100.0))
     }
   }
 }

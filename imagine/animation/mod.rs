@@ -25,13 +25,13 @@ pub enum AnimationUpdate {
   Camera2DTransform(Vector2<f32>, Vector2<f32>, f32),
   Perspective(f32, f32, f32),
   // Orthograpic(f32, f32, f32, f32, f32, f32)
+  // Opacity2D(f32),
 }
 
 pub enum Interpolation {
   Linear,
   EaseIn,
   EaseOut,
-  // EaseOutBounce,
   EaseInOut
 }
 

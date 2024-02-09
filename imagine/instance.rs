@@ -38,24 +38,31 @@ lazy_static! {
       lights: HashMap::new(),
       camera_2d: Camera2D::default(),
       camera_3d: Camera3D::default(),
-      segments: Vec::new(),
-      windings: Vec::new(),
       paths: BTreeMap::new(),
-      // segments: vec![
-      //   -0.5, 0.5, -0.8, -0.5,
-      //   0.5, -0.5, 0.8, 0.5,
-      //   -0.3, 0.3, -0.4, -0.3,
-      //   0.3, -0.3, 0.4, 0.3
+      points: Vec::new(),
+      controls: Vec::new(),
+      // points: vec![
+      //   -5.0, 5.0, -8.0, -5.0,
+      //   5.0, -5.0, 8.0, 5.0,
+      //   -3.0, 3.0, -4.0, -3.0,
+      //   3.0, -3.0, 0.0, 0.0, 4.0, 3.0
+
+      //   // -5.0, 5.0, -8.0, -5.0,
+      //   // 5.0, -5.0, 8.0, 5.0,
+      //   // -3.0, 3.0, -4.0, -3.0,
+      //   // 3.0, -3.0, 4.0, 3.0
       // ],
-      // windings: vec![1, -1, -1, 1],
+      // controls: vec![0, 0, 0, 1],
       // paths: BTreeMap::from([
       //   (1, PathConfig {
-      //     segments: 4,
-      //     bounds: [-0.8, -0.5, 0.8, 0.5],
+      //     opacity: 1.0,
+      //     path_segments: 4,
+      //     bounds: [-8.0, -5.0, 8.0, 5.0],
       //     scale: Vector2::new(1.0, 1.0),
       //     position: Vector2::new(0.0, 0.0),
       //     rotation: 0.0,
-      //     transform: Matrix3::identity()
+      //     transform: Matrix3::new_nonuniform_scaling(&Vector2::new(0.1, 0.1))
+      //     // transform: Matrix3::identity()
       //   })
       // ]),
       meshes: HashMap::from([

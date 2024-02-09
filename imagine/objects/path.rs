@@ -24,16 +24,12 @@ use nalgebra::{Vector2, Matrix3};
 use crate::render::primitives::PathConfig;
 use crate::controller::Object2DController;
 
-pub enum PathSegment {
-  MoveTo(f32, f32),
-  LineTo(f32, f32),
-  QuadTo(f32, f32, f32, f32),
-  CubicTo(f32, f32, f32, f32, f32, f32)
-}
-
 #[pyclass]
 pub struct Path {
-  pub temp_segments: Option<Vec<PathSegment>>,
+  segment_closed: bool,
+  temp_bounds: [f32; 4],
+  temp_points: Vec<f32>,
+  temp_segments: Vec<u8>,
   pub world_object: Option<Object2DController>
 }
 
@@ -42,10 +38,9 @@ impl Path {
   #[new]
   #[pyo3(signature=(path=String::new()))]
   pub fn new(path: String) -> Self {
-    Self {
-      temp_segments: Some(Vec::new()),
-      world_object: None
-    }
+    let mut path = Path::empty();
+    // TODO: Parse string to path
+    path
   }
 
   #[getter(bounds)]
@@ -59,100 +54,103 @@ impl Path {
     Ok(None)
   }
 
-  pub fn move_to(&mut self, x: f32, y: f32) {
-    if let Some(ref mut segments) = self.temp_segments {
-      segments.push(PathSegment::MoveTo(x, y));
+  fn update_bounds(&mut self, x: f32, y: f32) {
+    if x < self.temp_bounds[0] {
+      self.temp_bounds[0] = x;
+    } else if y < self.temp_bounds[1] {
+      self.temp_bounds[1] = y;
+    } else if x > self.temp_bounds[2] {
+      self.temp_bounds[2] = x;
+    } else if y > self.temp_bounds[3] {
+      self.temp_bounds[3] = y;
     }
+  }
+
+  pub fn move_to(&mut self, x: f32, y: f32) {
+    self.temp_points.push(x);
+    self.temp_points.push(y);
+
+    self.update_bounds(x, y);
+    self.segment_closed = false;
   }
 
   pub fn line_to(&mut self, x: f32, y: f32) {
-    if let Some(ref mut segments) = self.temp_segments {
-      segments.push(PathSegment::LineTo(x, y));
+    if self.segment_closed {
+      let last_x = self.temp_points[self.temp_points.len()-2];
+      let last_y = self.temp_points[self.temp_points.len()-1];
+      self.temp_points.push(last_x);
+      self.temp_points.push(last_y);
     }
+
+    self.temp_points.push(x);
+    self.temp_points.push(y);
+
+    self.update_bounds(x, y);
+    self.temp_segments.push(0);
+    self.segment_closed = true;
   }
 
   pub fn quad_to(&mut self, x: f32, y: f32, cx: f32, cy: f32) {
-    if let Some(ref mut segments) = self.temp_segments {
-      segments.push(PathSegment::QuadTo(x, y, 0.0, 0.0));
+    if self.segment_closed {
+      let last_x = self.temp_points[self.temp_points.len()-2];
+      let last_y = self.temp_points[self.temp_points.len()-1];
+      self.temp_points.push(last_x);
+      self.temp_points.push(last_y);
     }
+
+    self.temp_points.push(cx);
+    self.temp_points.push(cy);
+    self.temp_points.push(x);
+    self.temp_points.push(y);
+
+    self.update_bounds(x, y);
+    self.temp_segments.push(1);
+    self.segment_closed = true;
   }
 
   pub fn cubic_to(&mut self, x: f32, y: f32, cx1: f32, cy1: f32, cx2: f32, cy2: f32) {
-    if let Some(ref mut segments) = self.temp_segments {
-      segments.push(PathSegment::CubicTo(x, y, 0.0, 0.0, 0.0, 0.0));
+    if self.segment_closed {
+      let last_x = self.temp_points[self.temp_points.len()-2];
+      let last_y = self.temp_points[self.temp_points.len()-1];
+      self.temp_points.push(last_x);
+      self.temp_points.push(last_y);
     }
+
+    self.temp_points.push(cx1);
+    self.temp_points.push(cy1);
+    self.temp_points.push(cx2);
+    self.temp_points.push(cy2);
+    self.temp_points.push(x);
+    self.temp_points.push(y);
+
+    self.update_bounds(x, y);
+    self.temp_segments.push(2);
+    self.segment_closed = true;
   }
 
-  // pub fn arc_to(&self) {}
-
   pub fn close(&mut self) {
-    if let Some(temp_segments) = &self.temp_segments {
-      let mut segments: Vec<f32> = Vec::new();
-      let mut windings: Vec<i32> = Vec::new();
-      let mut bounds = [f32::MAX, f32::MAX, f32::MIN, f32::MIN];
+    self.line_to(self.temp_points[0], self.temp_points[1]);
 
-      for segment in temp_segments.iter() {
-        if let Some(last_y) = segments.last() {
-          match segment {
-            PathSegment::MoveTo(_, _) => (),
-            PathSegment::LineTo(_, y) => windings.push(if y < last_y { 1 } else { -1 }),
-            PathSegment::QuadTo(_, y, _, _) => windings.push(if y < last_y { 1 } else { -1 }),
-            PathSegment::CubicTo(_, y, _, _, _, _) => windings.push(if y < last_y { 1 } else { -1 })
-          }
-        }
+    let config = PathConfig {
+      opacity: 1.0,
+      bounds: self.temp_bounds,
+      scale: Vector2::new(1.0, 1.0),
+      position: Vector2::zeros(),
+      rotation: 0.0,
+      transform: Matrix3::identity(),
+      path_segments: self.temp_segments.len()
+    };
 
-        if segments.len() % 4 == 0 {
-          match segment {
-            PathSegment::MoveTo(x, y) => segments.extend([x, y]),
-            PathSegment::LineTo(x, y) => {
-              segments.extend([segments[segments.len()-2], segments[segments.len()-1], *x, *y]);
-            },
-            PathSegment::QuadTo(x, y, _, _) => {
-              segments.extend([segments[segments.len()-2], segments[segments.len()-1], *x, *y]);
-            },
-            PathSegment::CubicTo(x, y, _, _, _, _) => {
-              segments.extend([segments[segments.len()-2], segments[segments.len()-1], *x, *y]);
-            }
-          }
-        } else {
-          segments.extend(match segment {
-            PathSegment::MoveTo(x, y) => [x, y],
-            PathSegment::LineTo(x, y) => [x, y],
-            PathSegment::QuadTo(x, y, _, _) => [x, y],
-            PathSegment::CubicTo(x, y, _, _, _, _) => [x, y]
-          });
-        }
-      }
+    self.world_object = Some(IMAGINE.lock().unwrap().world.add_path(
+      &self.temp_points,
+      &self.temp_segments,
+      config
+    ));
 
-      for i in (0..segments.len()).step_by(2) {
-        if segments[i] < bounds[0] {
-          bounds[0] = segments[i];
-        } else if segments[i+1] < bounds[1] {
-          bounds[1] = segments[i+1];
-        } else if segments[i] > bounds[2] {
-          bounds[2] = segments[i];
-        } else if segments[i+1] > bounds[3] {
-          bounds[3] = segments[i+1];
-        }
-      }
-
-      let config = PathConfig {
-        bounds,
-        segments: (segments.len() / 4) as u32,
-        scale: Vector2::new(1.0, 1.0),
-        position: Vector2::zeros(),
-        rotation: 0.0,
-        transform: Matrix3::identity()
-      };
-
-      self.world_object = Some(IMAGINE.lock().unwrap().world.add_path(
-        segments,
-        windings,
-        config
-      ));
-
-      self.temp_segments = None;
-    }
+    self.temp_points.clear();
+    self.temp_segments.clear();
+    self.segment_closed = false;
+    self.temp_bounds = [f32::MAX, f32::MAX, f32::MIN, f32::MIN];
   }
 
   #[pyo3(signature=(t=1.0, angle=2.0*PI))]
@@ -166,8 +164,11 @@ impl Path {
 impl Path {
   pub fn empty() -> Self {
     Self {
-      temp_segments: Some(Vec::new()),
-      world_object: None
+      world_object: None,
+      segment_closed: false,
+      temp_points: Vec::new(),
+      temp_segments: Vec::new(),
+      temp_bounds: [f32::MAX, f32::MAX, f32::MIN, f32::MIN]
     }
   }
 }
