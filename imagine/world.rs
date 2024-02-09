@@ -120,8 +120,8 @@ impl PyWorld {
   }
 
   #[cfg(debug_assertions)]
-  #[getter(segments)]
-  fn get_segments(&self) -> PyResult<Vec<f32>> {
-    Ok(IMAGINE.lock().unwrap().world.segments.clone())
+  #[getter(controls)]
+  fn get_controls(&self) -> PyResult<Vec<u8>> {
+    Ok(IMAGINE.lock().unwrap().world.controls.clone())
   }
 }
