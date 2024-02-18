@@ -16,17 +16,19 @@
   limitations under the License.
 *******************************************************************************/
 
+use pyo3::Python;
 use nalgebra::Vector2;
 use wgpu::util::DeviceExt;
 use std::collections::HashMap;
 use crate::world::{World, Domain};
 use crate::render::{RenderContext, RenderResource, RenderOperation};
 use crate::render::primitives::{
+  Model,
   Uniform3D,
   PathUniform,
+  ModelMaterial,
   FillConfigUniform,
-  Model,
-  ModelMaterial
+  StrokeConfigUniform
 };
 
 pub struct RenderGraph  {
@@ -60,6 +62,11 @@ impl RenderGraph {
     graph.resources.extend(fill_resources);
     graph.stages.push(vec![String::from("fill pass")]);
     graph.operations.insert(String::from("fill pass"), fill_ops);
+
+    // let (stroke_ops, stroke_resources) = RenderOperation::create_stroke_pass(&graph.context);
+    // graph.resources.extend(stroke_resources);
+    // graph.stages.push(vec![String::from("stroke pass")]);
+    // graph.operations.insert(String::from("stroke pass"), stroke_ops);
 
     graph.resources.insert(
       String::from("star"),
@@ -179,20 +186,28 @@ impl RenderGraph {
         // world.meshes.updated.clear();
       },
       _ => {
-        // if let Some(RenderResource::Uniform { buffer, binding }) = self.resources.get("camera_2d") {
-        //   self.context.queue.write_buffer(
-        //     &buffer,
-        //     0,
-        //     bytemuck::cast_slice(&[world.camera_2d.uniform()])
-        //   );
-        // }
-
         if let Some(RenderResource::Uniform { buffer, binding }) = self.resources.get("fill_config") {
           self.context.queue.write_buffer(
             &buffer,
             0,
             bytemuck::cast_slice(&[FillConfigUniform {
               clear: [0.0, 0.0, 0.0, 1.0],
+              resolution: [1920.0, 1080.0],
+              _padding: [0.0, 0.0],
+              view: [
+                [world.camera_2d.view.m11, world.camera_2d.view.m21, world.camera_2d.view.m31, 0.0],
+                [world.camera_2d.view.m12, world.camera_2d.view.m22, world.camera_2d.view.m32, 0.0],
+                [world.camera_2d.view.m13, world.camera_2d.view.m23, world.camera_2d.view.m33, 0.0]
+              ]
+            }])
+          );
+        }
+
+        if let Some(RenderResource::Uniform { buffer, binding }) = self.resources.get("stroke_config") {
+          self.context.queue.write_buffer(
+            &buffer,
+            0,
+            bytemuck::cast_slice(&[StrokeConfigUniform {
               resolution: [1920.0, 1080.0],
               _padding: [0.0, 0.0],
               view: [
@@ -212,7 +227,7 @@ impl RenderGraph {
           let mut idx = 0;
           let mut offset = 0;
           let mut segment_count = 0;
-          let mut segments = Vec::new();
+          let mut segments: Vec<f32> = Vec::new();
           let mut paths: Vec<PathUniform> = Vec::new();
 
           for path in world.paths.values() {
@@ -273,16 +288,18 @@ impl RenderGraph {
               idx += (4 + 2 * controls) as usize;
             }
 
+            let transform = if world.animating { path.transform } else { path.get_transform() };
             paths.push(PathUniform {
               opacity: path.opacity,
               segments: segment_count,
               _padding: [0.0, 0.0],
-              color: [1.0, 1.0, 1.0, 1.0],
+              fill_color: [1.0, 1.0, 1.0, 1.0],
+              stroke_color: [1.0, 0.0, 0.0, 1.0],
               bounds: path.bounds,
               transform: [
-                [path.transform.m11, path.transform.m21, path.transform.m31, 0.0],
-                [path.transform.m12, path.transform.m22, path.transform.m32, 0.0],
-                [path.transform.m13, path.transform.m23, path.transform.m33, 0.0]
+                [transform.m11, transform.m21, transform.m31, 0.0],
+                [transform.m12, transform.m22, transform.m32, 0.0],
+                [transform.m13, transform.m23, transform.m33, 0.0]
               ]
             });
 

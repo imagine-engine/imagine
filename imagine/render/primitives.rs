@@ -16,6 +16,9 @@
   limitations under the License.
 *******************************************************************************/
 
+use pyo3::Py;
+use crate::Python;
+use crate::math::Vector;
 use wgpu::util::DeviceExt;
 use crate::render::RenderContext;
 use crate::animation::{Animation, AnimationUpdate};
@@ -53,10 +56,32 @@ pub struct FillConfigUniform {
   pub view: [[f32; 4]; 3]
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct StrokeConfigUniform {
+  pub resolution: [f32; 2],
+  pub _padding: [f32; 2],
+  pub view: [[f32; 4]; 3]
+}
+
 impl FillConfigUniform {
   pub fn default() -> Self {
     Self {
       clear: [0.0, 0.0, 0.0, 1.0],
+      resolution: [1920.0, 1080.0],
+      _padding: [0.0, 0.0],
+      view: [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0]
+      ]
+    }
+  }
+}
+
+impl StrokeConfigUniform {
+  pub fn default() -> Self {
+    Self {
       resolution: [1920.0, 1080.0],
       _padding: [0.0, 0.0],
       view: [
@@ -397,7 +422,8 @@ pub struct PathUniform {
   pub opacity: f32,
   pub segments: u32,
   pub _padding: [f32; 2],
-  pub color: [f32; 4],
+  pub fill_color: [f32; 4],
+  pub stroke_color: [f32; 4],
   pub bounds: [f32; 4],
   pub transform: [[f32; 4]; 3]
 }
@@ -405,11 +431,11 @@ pub struct PathUniform {
 pub struct PathConfig {
   pub opacity: f32,
   pub bounds: [f32; 4],
-  pub path_segments: usize,
-  pub scale: Vector2<f32>,
-  pub position: Vector2<f32>,
   pub rotation: f32,
-  pub transform: Matrix3<f32>
+  pub scale: Py<Vector>,
+  pub position: Py<Vector>,
+  pub transform: Matrix3<f32>,
+  pub path_segments: usize
 }
 
 pub struct Object3D {
@@ -449,6 +475,28 @@ impl Object3D {
         }
       )
     }
+  }
+}
+
+impl PathConfig {
+  pub fn get_transform(&self) -> Matrix3<f32> {
+    Python::with_gil(|py| {
+      let s = self.scale.borrow(py);
+      let scale = Matrix3::new_nonuniform_scaling(&Vector2::<f32>::new(
+        1.0 / s.x,
+        1.0 / s.y
+      ));
+
+      let p = self.position.borrow(py);
+      let position = Matrix3::new_translation(&Vector2::<f32>::new(
+        -p.x,
+        -p.y
+      ));
+
+      let rotation = Matrix3::new_rotation(self.rotation);
+      
+      scale * position * rotation
+    })
   }
 }
 

@@ -18,7 +18,7 @@
 
 use pyo3::prelude::*;
 use nalgebra::Matrix4;
-use crate::objects::{Mesh, Path};
+use crate::objects::{Mesh, Path, PathBuilder};
 use crate::render::primitives::Vertex3D;
 
 #[pyfunction]
@@ -50,13 +50,13 @@ pub fn cube() -> PyResult<Mesh> {
 #[pyo3(name="Triangle", signature=(size=5.0))]
 pub fn triangle(size: f32) -> PyResult<Path> {
   let half_size = size / 2.0;
-  let mut path = Path::empty();
+  let mut path = PathBuilder::new();
   path.move_to(0.0, half_size);
   path.line_to(-half_size, -half_size);
   path.line_to(half_size, -half_size);
   path.close();
 
-  Ok(path)
+  Ok(path.build())
 }
 
 #[pyfunction]
@@ -64,14 +64,14 @@ pub fn triangle(size: f32) -> PyResult<Path> {
 pub fn square(size: f32) -> PyResult<Path> {
   let half_size = size / 2.0;
 
-  let mut path = Path::empty();
+  let mut path = PathBuilder::new();
   path.move_to(-half_size, half_size);
   path.line_to(-half_size, -half_size);
   path.line_to(half_size, -half_size);
   path.line_to(half_size, half_size);
   path.close();
 
-  Ok(path)
+  Ok(path.build())
 }
 
 #[pyfunction]
@@ -80,20 +80,20 @@ pub fn rectangle(width: f32, height: f32) -> PyResult<Path> {
   let half_width = width / 2.0;
   let half_height = height / 2.0;
 
-  let mut path = Path::empty();
+  let mut path = PathBuilder::new();
   path.move_to(-half_width, half_height);
   path.line_to(-half_width, -half_height);
   path.line_to(half_width, -half_height);
   path.line_to(half_width, half_height);
   path.close();
 
-  Ok(path)
+  Ok(path.build())
 }
 
 #[pyfunction]
 #[pyo3(name="Pentagon", signature=(radius=50.0))]
 pub fn pentagon(radius: f32) -> PyResult<Path> {
-  let mut path = Path::empty();
+  let mut path = PathBuilder::new();
   path.move_to(0.0, 0.5*radius);
   path.line_to(-0.476*radius, 0.155*radius);
   path.line_to(-0.294*radius, -0.405*radius);
@@ -101,5 +101,5 @@ pub fn pentagon(radius: f32) -> PyResult<Path> {
   path.line_to(0.476*radius, 0.155*radius);
   path.close();
 
-  Ok(path)
+  Ok(path.build())
 }

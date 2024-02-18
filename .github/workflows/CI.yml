@@ -27,5 +27,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           pip install setuptools_rust
-      - name: Build and Test
+      - name: Build
+        run: python setup.py develop
+      - name: Test
         run: pytest

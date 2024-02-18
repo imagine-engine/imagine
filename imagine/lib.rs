@@ -36,6 +36,7 @@ use output::*;
 use loaders::*;
 use math::Vector;
 use color::Color;
+use objects::Path;
 use camera::Camera;
 use world::PyWorld;
 use pyo3::wrap_pymodule;
@@ -71,6 +72,8 @@ fn object_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(rectangle, m)?)?;
   m.add_function(wrap_pyfunction!(pentagon, m)?)?;
 
+  m.add_class::<Path>()?;
+
   Ok(())
 }
 
@@ -97,8 +100,6 @@ fn imagine(_py: Python, m: &PyModule) -> PyResult<()> {
   sys_modules.set_item("imagine.shader", m.getattr("shaders")?)?;
   sys_modules.set_item("imagine.loaders", m.getattr("loaders")?)?;
   sys_modules.set_item("imagine.objects", m.getattr("objects")?)?;
-
-  m.add_class::<Color>()?;
 
   let world = Py::new(_py, PyWorld {}).unwrap();
   m.add("world", world)?;

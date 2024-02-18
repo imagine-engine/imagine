@@ -13,8 +13,6 @@ struct Path {
 };
 
 layout(set=0, binding=0) uniform ConfigBuffer {
-    // bool clear;
-    vec4 clear_color;
     vec2 resolution;
     mat3 view;
 };
@@ -27,8 +25,9 @@ layout(set=1, binding=1) readonly buffer PathBuffer {
     Path path[];
 };
 
-layout(set=1, binding=2, rgba8) writeonly uniform image2D fill;
+layout(set=1, binding=2, rgba8) writeonly uniform image2D stroke;
 
+const float width = 20.0;
 const bool evenodd = true;
 
 bool ccw(vec2 a, vec2 b, vec2 c) {
@@ -36,7 +35,6 @@ bool ccw(vec2 a, vec2 b, vec2 c) {
 }
 
 void main() {
-    bool blank = true;
     vec3 view_position = view * vec3(
         2 * gl_GlobalInvocationID.x / resolution.x - 1.0,
         -(2 * gl_GlobalInvocationID.y / resolution.y - 1.0),
@@ -48,7 +46,6 @@ void main() {
     for (uint i = 0; i < path.length(); i++) {
         vec3 position = path[i].transform * view_position;
 
-        // Check intersecting segments if within the bounds of the path
         if (position.x > path[i].bounds.x && position.x < path[i].bounds.z &&
             position.y > path[i].bounds.y && position.y < path[i].bounds.w
         ) {
@@ -57,7 +54,6 @@ void main() {
             for (uint j = offset; j < offset + 4 * path[i].segments; j += 4) {
                 vec2 p1 = vec2(segments[j], segments[j+1]);
                 vec2 p2 = vec2(segments[j+2], segments[j+3]);
-                //  Skip the segment if y intersects the segment
                 if (p1.y < position.y == p2.y < position.y)
                     continue;
 
@@ -65,20 +61,48 @@ void main() {
                 else left++;
             }
 
-            // Fill shape evenodd or nonzero based on fill rule
-            if (evenodd && right % 2 != 0 || !evenodd && left > 0 && right > 0) {
-            // if (evenodd && right % 2 != 0 || !evenodd && left != right) {
-                blank = false;
+            if (evenodd && right % 2 == 0 || !evenodd && (left > 0 || right > 0)) {
                 imageStore(
-                    fill,
+                    stroke,
                     ivec2(gl_GlobalInvocationID.xy),
-                    path[i].opacity * path[i].fill_color
+                    path[i].opacity * path[i].stroke_color
                 );
             }
         }
 
         offset += path[i].segments;
     }
-
-    if (blank) imageStore(fill, ivec2(gl_GlobalInvocationID.xy), clear_color);
 }
+
+// void main() {
+//     vec3 view_position = view * vec3(
+//         2 * gl_GlobalInvocationID.x / resolution.x - 1.0,
+//         -(2 * gl_GlobalInvocationID.y / resolution.y - 1.0),
+//         1
+//     );
+//     view_position.x *= resolution.x / resolution.y;
+
+//     uint offset = 0;
+//     for (uint i = 0; i < path.length(); i++) {
+//         vec3 position = path[i].transform * view_position;
+
+//         if (position.x > path[i].bounds.x && position.x < path[i].bounds.z &&
+//             position.y > path[i].bounds.y && position.y < path[i].bounds.w
+//         ) {
+//             for (uint j = offset; j < offset + 4 * path[i].segments; j += 4) {
+//                 vec2 p1 = vec2(segments[j], segments[j+1]);
+//                 vec2 p2 = vec2(segments[j+2], segments[j+3]);
+//                 if (p1.y < position.y != p2.y < position.y &&
+//                     abs(ccw(p1, p2, position.xy)) < width) {
+//                     imageStore(
+//                         stroke,
+//                         ivec2(gl_GlobalInvocationID.xy),
+//                         path[i].opacity * path[i].stroke_color
+//                     );
+//                 }
+//             }
+//         }
+
+//         offset += path[i].segments;
+//     }
+// }

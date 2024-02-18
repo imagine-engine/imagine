@@ -23,10 +23,11 @@ use crate::render::RenderResource;
 use crate::render::primitives::{
   Vertex3D,
   Uniform3D,
+  ModelMaterial,
+  PhongMaterial,
   Camera3DUniform,
   FillConfigUniform,
-  ModelMaterial,
-  PhongMaterial
+  StrokeConfigUniform
 };
 
 use std::borrow::Cow;
@@ -349,7 +350,7 @@ impl RenderOperation {
       )
     });
 
-    // Prepare camera uniforms
+    // Prepare configuration uniforms
     let config_layout = context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
       label: None,
       entries: &[wgpu::BindGroupLayoutEntry {
@@ -504,6 +505,224 @@ impl RenderOperation {
         ) = (
           resources.get("world_2d"),
           resources.get("fill_config")
+        ) {
+          let mut pass = encoder.begin_compute_pass(
+            &wgpu::ComputePassDescriptor { label: None }
+          );
+
+          pass.set_pipeline(pipeline);
+          pass.set_bind_group(0, &binding, &[]);
+          pass.set_bind_group(1, &bindings, &[]);
+          pass.dispatch_workgroups(
+            (context.size.width as f32 / 16.0).ceil() as u32,
+            (context.size.height as f32 / 16.0).ceil() as u32,
+            1
+          );
+        }
+
+        if let (
+          Some(RenderResource::Texture(output)),
+          Some(RenderResource::Buffer(buffer))
+        ) = (
+          resources.get("output_texture"),
+          resources.get("framebuffer")
+        ) {
+          let u32_size = std::mem::size_of::<u32>() as u32;
+          encoder.copy_texture_to_buffer(
+            wgpu::ImageCopyTexture {
+              aspect: wgpu::TextureAspect::All,
+              texture: &output.texture,
+              mip_level: 0,
+              origin: wgpu::Origin3d::ZERO
+            },
+            wgpu::ImageCopyBuffer {
+              buffer,
+              layout: wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(u32_size * context.size.width),
+                rows_per_image: Some(context.size.height)
+              }
+            },
+            context.size
+          );
+        }
+
+        encoder.finish()
+      }
+    };
+
+    (operation, resources)
+  }
+
+  pub fn create_stroke_pass(context: &RenderContext) -> (Self, HashMap<String, RenderResource>) {
+    let cs_module = context.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: None,
+      source: wgpu::util::make_spirv(
+        shaderc::Compiler::new().unwrap().compile_into_spirv(
+          include_str!("../resources/shaders/stroke.comp"),
+          shaderc::ShaderKind::Compute,
+          "../resources/shaders/stroke.comp",
+          "main",
+          None
+        ).unwrap().as_binary_u8()
+      )
+    });
+
+    // Prepare configuration uniforms
+    let config_layout = context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+      label: None,
+      entries: &[wgpu::BindGroupLayoutEntry {
+        binding: 0,
+        count: None,
+        visibility: wgpu::ShaderStages::COMPUTE,
+        ty: wgpu::BindingType::Buffer {
+          ty: wgpu::BufferBindingType::Uniform,
+          has_dynamic_offset: false,
+          min_binding_size: None
+        }
+      }]
+    });
+
+    let config_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+      label: None,
+      contents: bytemuck::cast_slice(&[StrokeConfigUniform::default()]),
+      usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
+    let config_binding = context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+      label: None,
+      layout: &config_layout,
+      entries: &[wgpu::BindGroupEntry {
+        binding: 0,
+        resource: config_buffer.as_entire_binding()
+      }]
+    });
+
+    // Prepare storage buffers
+    let segment_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
+      label: None,
+      size: 4 * context.max_paths * std::mem::size_of::<f32>() as u64,
+      usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+      mapped_at_creation: false
+    });
+
+    let path_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
+      label: None,
+      size: context.max_paths * std::mem::size_of::<f32>() as u64,
+      usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+      mapped_at_creation: false
+    });
+
+    let stroke_layout = context.device.create_bind_group_layout(
+      &wgpu::BindGroupLayoutDescriptor {
+        label: None,
+        entries: &[
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            count: None,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            }
+          },
+          wgpu::BindGroupLayoutEntry {
+            binding: 1,
+            count: None,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            }
+          },
+          wgpu::BindGroupLayoutEntry {
+            binding: 2,
+            count: None,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::StorageTexture {
+              view_dimension: wgpu::TextureViewDimension::D2,
+              format: wgpu::TextureFormat::Rgba8Unorm,
+              access: wgpu::StorageTextureAccess::WriteOnly,
+            }
+          }
+        ]
+      }
+    );
+
+    let stroke_texture = context.create_texture(
+      wgpu::TextureFormat::Rgba8Unorm,
+      wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::STORAGE_BINDING
+    );
+
+    let stroke_bindings = context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+      label: None,
+      layout: &stroke_layout,
+      entries: &[
+        wgpu::BindGroupEntry {
+          binding: 0,
+          resource: segment_buffer.as_entire_binding()
+        },
+        wgpu::BindGroupEntry {
+          binding: 1,
+          resource: path_buffer.as_entire_binding()
+        },
+        wgpu::BindGroupEntry {
+          binding: 2,
+          resource: wgpu::BindingResource::TextureView(&stroke_texture.view),
+        }
+      ]
+    });
+
+    // Prepare render pipeline
+    let pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: None,
+      bind_group_layouts: &[
+        &config_layout,
+        &stroke_layout
+      ],
+      push_constant_ranges: &[]
+    });
+
+    let pipeline = context.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+      label: None,
+      layout: Some(&pipeline_layout),
+      module: &cs_module,
+      entry_point: "main"
+    });
+
+    let mut resources = HashMap::new();
+    resources.insert(String::from("framebuffer"), context.create_framebuffer());
+    resources.insert(String::from("output_texture"), RenderResource::Texture(stroke_texture));
+    resources.insert(String::from("stroke_config"), RenderResource::Uniform {
+      buffer: config_buffer,
+      binding: config_binding
+    });
+    resources.insert(String::from("world_2d"), RenderResource::Layer(
+      segment_buffer,
+      path_buffer,
+      stroke_bindings
+    ));
+
+    let operation = RenderOperation::ComputeDispatch {
+      input: vec![
+        String::from("world_2d"),
+        String::from("stroke_config")
+      ],
+      output: vec![String::from("output_texture")],
+      pipeline,
+      compute: |context, pipeline, resources| {
+        let mut encoder = context.device.create_command_encoder(
+          &wgpu::CommandEncoderDescriptor { label: None }
+        );
+
+        if let (
+          Some(RenderResource::Layer(_, _, bindings)),
+          Some(RenderResource::Uniform { buffer, binding })
+        ) = (
+          resources.get("world_2d"),
+          resources.get("stroke_config")
         ) {
           let mut pass = encoder.begin_compute_pass(
             &wgpu::ComputePassDescriptor { label: None }

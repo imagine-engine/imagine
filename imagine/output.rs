@@ -54,7 +54,7 @@ impl Output {
     if self.video.writing {
       self.video.write(
         futures::executor::block_on(
-          render(&world, &mut self.render_graph)
+          render(world, &mut self.render_graph)
         ),
         frames
       );

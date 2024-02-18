@@ -16,14 +16,17 @@
   limitations under the License.
 *******************************************************************************/
 
+use pyo3::PyRefMut;
+use crate::objects::Path;
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
 
 pub enum AnimationUpdate {
+  Transform2D(i32, Option<Vector2<f32>>, Option<Vector2<f32>>, Option<f32>),
   Transform3D(i32, Vector3<f32>, Vector3<f32>, Vector3<f32>),
-  Transform2D(i32, Vector2<f32>, Vector2<f32>, f32),
   Camera3DTransform(Vector3<f32>, Vector3<f32>, Vector3<f32>),
   Camera2DTransform(Vector2<f32>, Vector2<f32>, f32),
   Perspective(f32, f32, f32),
+
   // Orthograpic(f32, f32, f32, f32, f32, f32)
   // Opacity2D(f32),
 }
@@ -91,21 +94,40 @@ impl Interpolation {
     initial_scale: &Vector2<f32>,
     initial_pos: &Vector2<f32>,
     initial_rot: f32,
-    final_scale: &Vector2<f32>,
-    final_pos: &Vector2<f32>,
-    final_rot: f32
+    final_scale: Option<&Vector2<f32>>,
+    final_pos: Option<&Vector2<f32>>,
+    final_rot: Option<f32>
   ) -> Matrix3<f32> {
     let ease = self.apply(t);
 
-    let scale = Matrix3::new_nonuniform_scaling(
-      &initial_scale.lerp(final_scale, ease)
-    );
-    let position = Matrix3::new_translation(
-      &initial_pos.lerp(final_pos, ease)
-    );
-    let rotation = Matrix3::new_rotation(
-      initial_rot + ease * (final_rot - initial_rot)
-    );
+    let scale_invert = if let Some(new_scale) = final_scale {
+      initial_scale.lerp(new_scale, ease)
+    } else {
+      *initial_scale
+    };
+    let scale = Matrix3::new_nonuniform_scaling(&Vector2::<f32>::new(
+      1.0 / scale_invert.x,
+      1.0 / scale_invert.y
+    ));
+
+    let angle = if let Some(new_rot) = final_rot {
+      initial_rot + ease * (new_rot - initial_rot)
+    } else {
+      initial_rot
+    };
+    let rotation = Matrix3::new_rotation(angle);
+
+    let pos_invert = if let Some(new_pos) = final_pos {
+      initial_pos.lerp(new_pos, ease)
+    } else {
+      *initial_pos
+    };
+    let sin_a = angle.sin();
+    let cos_a = angle.cos();
+    let position = Matrix3::new_translation(&Vector2::<f32>::new(
+      pos_invert.y*sin_a - pos_invert.x*cos_a,
+      -pos_invert.x*sin_a - pos_invert.y*cos_a,
+    ));
 
     scale * position * rotation
   }

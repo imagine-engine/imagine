@@ -16,11 +16,16 @@
   limitations under the License.
 *******************************************************************************/
 
+// use std::cell::Cell;
 use pyo3::prelude::*;
+use nalgebra::Matrix3;
 use crate::controller::*;
 use crate::instance::IMAGINE;
-use std::collections::{HashMap, BTreeMap};
 use crate::render::primitives::*;
+use crate::math::Vector;
+use std::collections::{HashMap, BTreeMap};
+
+use crate::objects::Path;
 
 pub enum Domain {
   World3D,
@@ -42,6 +47,7 @@ pub struct World {
   pub paths: BTreeMap<i32, PathConfig>,
   pub points: Vec<f32>,
   pub controls: Vec<u8>,
+  pub animating: bool
 }
 
 impl World {
@@ -56,14 +62,36 @@ impl World {
     &mut self,
     points: &Vec<f32>,
     controls: &Vec<u8>,
-    config: PathConfig
-  ) -> Object2DController {
+    bounds: [f32; 4],
+    path_segments: usize
+  ) -> Path {
     let id = self.paths.len() as i32;
-    self.paths.insert(id, config);
     self.points.extend(points);
     self.controls.extend(controls);
 
-    Object2DController { id }
+    Python::with_gil(|py| {
+      let scale = Py::new(py, Vector::new(1.0, 1.0, 0.0)).unwrap();
+      let position = Py::new(py, Vector::new(0.0, 0.0, 0.0)).unwrap();
+      let config = PathConfig {
+        opacity: 1.0,
+        bounds,
+        path_segments,
+        rotation: 0.0,
+        // rotation: Cell::new(0.0),
+        scale: Py::clone_ref(&scale, py),
+        position: Py::clone_ref(&position, py),
+        transform: Matrix3::identity()
+      };
+      self.paths.insert(id, config);
+
+      Path {
+        id,
+        scale,
+        position,
+        rotation: 0.0
+        // rotation: Cell::new(0.0)
+      }
+    })
   }
 
   pub fn add_camera2d(&mut self, camera: Camera2D) -> Camera2DController {
@@ -113,13 +141,13 @@ impl PyWorld {
     Ok(IMAGINE.lock().unwrap().world.age)
   }
 
-  #[cfg(debug_assertions)]
+  // #[cfg(debug_assertions)]
   #[getter(points)]
   fn get_points(&self) -> PyResult<Vec<f32>> {
     Ok(IMAGINE.lock().unwrap().world.points.clone())
   }
 
-  #[cfg(debug_assertions)]
+  // #[cfg(debug_assertions)]
   #[getter(controls)]
   fn get_controls(&self) -> PyResult<Vec<u8>> {
     Ok(IMAGINE.lock().unwrap().world.controls.clone())

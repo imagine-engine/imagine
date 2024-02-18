@@ -21,7 +21,6 @@ use nalgebra::{Vector2, Matrix3};
 use crate::math::vector::Vector;
 use crate::instance::IMAGINE;
 use crate::render::primitives::SpriteConfig;
-use crate::controller::Object2DController;
 
 #[pyclass]
 pub struct Sprite {
@@ -30,8 +29,7 @@ pub struct Sprite {
   #[pyo3(get)]
   pub position: Vector,
   #[pyo3(get)]
-  pub rotation: Vector,
-  pub world_object: Object2DController
+  pub rotation: f32
 }
 
 #[pymethods]

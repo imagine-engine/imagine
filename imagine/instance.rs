@@ -33,6 +33,7 @@ lazy_static! {
   pub static ref IMAGINE: Mutex<App> = Mutex::new(App {
     world: World {
       age: 0.0,
+      animating: false,
       // domain: Domain::World3D,
       domain: Domain::Default,
       lights: HashMap::new(),
@@ -41,30 +42,6 @@ lazy_static! {
       paths: BTreeMap::new(),
       points: Vec::new(),
       controls: Vec::new(),
-      // points: vec![
-      //   -5.0, 5.0, -8.0, -5.0,
-      //   5.0, -5.0, 8.0, 5.0,
-      //   -3.0, 3.0, -4.0, -3.0,
-      //   3.0, -3.0, 0.0, 0.0, 4.0, 3.0
-
-      //   // -5.0, 5.0, -8.0, -5.0,
-      //   // 5.0, -5.0, 8.0, 5.0,
-      //   // -3.0, 3.0, -4.0, -3.0,
-      //   // 3.0, -3.0, 4.0, 3.0
-      // ],
-      // controls: vec![0, 0, 0, 1],
-      // paths: BTreeMap::from([
-      //   (1, PathConfig {
-      //     opacity: 1.0,
-      //     path_segments: 4,
-      //     bounds: [-8.0, -5.0, 8.0, 5.0],
-      //     scale: Vector2::new(1.0, 1.0),
-      //     position: Vector2::new(0.0, 0.0),
-      //     rotation: 0.0,
-      //     transform: Matrix3::new_nonuniform_scaling(&Vector2::new(0.1, 0.1))
-      //     // transform: Matrix3::identity()
-      //   })
-      // ]),
       meshes: HashMap::from([
         (1, Object3D {
           vertices: vec![
@@ -128,141 +105,160 @@ pub struct App {
 
 impl App {
   pub fn wait(&mut self, t: f32) {
+    self.world.age += t;
     if let Some(fps) = self.output.video.get_fps() {
-      self.world.age += t;
       self.output.write(
-        &self.world,
+        &mut self.world,
         (t * fps as f32) as i32
       );
     }
   }
 
   pub fn run(&mut self, duration: f32, animations: &[Animation]) {
+    self.world.animating = true;
     let frames = (duration * self.output.video.get_fps().unwrap() as f32) as u32;
-    for t in (0..frames as usize).map(|i| i as f32 / (frames-1) as f32) {
-      for animation in animations {
-        match &animation.update {
-          AnimationUpdate::Transform3D(id, scale, position, rotation) => self.world.access_mesh(
-            *id, |object| {
-              object.transform = animation.interpolation.transform3d(
+    Python::with_gil(|py| {
+      for t in (0..frames as usize).map(|i| i as f32 / (frames-1) as f32) {
+        for animation in animations {
+          match &animation.update {
+            AnimationUpdate::Transform3D(id, scale, position, rotation) => self.world.access_mesh(
+              *id, |object| {
+                object.transform = animation.interpolation.transform3d(
+                  t,
+                  &object.scale,
+                  &object.position,
+                  &object.rotation,
+                  &scale,
+                  &position,
+                  &rotation
+                );
+              }
+            ),
+            AnimationUpdate::Transform2D(id, scale, position, rotation) => self.world.access_path(
+              *id, |object| {
+                let og_scale = object.scale.borrow(py);
+                let og_position = object.position.borrow(py);
+
+                object.transform = animation.interpolation.transform2d(
+                  t,
+                  &Vector2::<f32>::new(og_scale.x, og_scale.y),
+                  &Vector2::<f32>::new(og_position.x, og_position.y),
+                  object.rotation,
+                  scale.as_ref(),
+                  position.as_ref(),
+                  *rotation
+                );
+              }
+            ),
+            AnimationUpdate::Camera3DTransform(scale, position, rotation) => {
+              self.world.camera_3d.view = animation.interpolation.camera_transform3d(
                 t,
-                &object.scale,
-                &object.position,
-                &object.rotation,
+                &self.world.camera_3d.scale,
+                &self.world.camera_3d.position,
+                &self.world.camera_3d.rotation,
                 &scale,
                 &position,
                 &rotation
               );
-            }
-          ),
-          AnimationUpdate::Transform2D(id, scale, position, rotation) => self.world.access_path(
-            *id, |object| {
-              object.transform = animation.interpolation.transform2d(
+            },
+            AnimationUpdate::Camera2DTransform(scale, position, rotation) => {
+              self.world.camera_2d.view = animation.interpolation.camera_transform2d(
                 t,
-                &object.scale,
-                &object.position,
-                object.rotation,
+                &self.world.camera_2d.scale,
+                &self.world.camera_2d.position,
+                self.world.camera_2d.rotation,
                 &scale,
                 &position,
                 *rotation
               );
+            },
+            AnimationUpdate::Perspective(final_fov, final_near, final_far) => {
+              if let CameraProjection::Perspective(
+                initial_fov,
+                initial_near,
+                initial_far
+              ) = self.world.camera_3d.config {
+                self.world.camera_3d.projection = animation.interpolation.perspective(
+                  t,
+                  self.world.camera_3d.aspect,
+                  initial_fov,
+                  initial_near,
+                  initial_far,
+                  *final_fov,
+                  *final_near,
+                  *final_far
+                );
+              }
+            },
+            // AnimationUpdate::Orthograpic(left, right, bottom, top, near, far) => {
+            //   if let CameraProjection::Orthograpic(config) = self.world.camera_3d.config {
+            //     self.world.camera_3d.projection = animation.interpolation.orthograpic(
+            //       t,
+            //       config.left, config.right, config.bottom, config.top,
+            //       config.near, config.far,
+            //       left, right, bottom, top, near, far
+            //     );
+            //   }
+            // }
+          }
+        }
+
+        self.output.write(&mut self.world, 1);
+      }
+
+      for animation in animations {
+        match &animation.update {
+          AnimationUpdate::Transform3D(id, scale, position, rotation) => self.world.access_mesh(
+            *id,
+            |mesh| {
+              mesh.scale = *scale;
+              mesh.position = *position;
+              mesh.rotation = *rotation;
+            }
+          ),
+          AnimationUpdate::Transform2D(id, s, p, r) => self.world.access_path(
+            *id,
+            |object| {
+              if let Some(new_scale) = s {
+                let mut scale = object.scale.borrow_mut(py);
+                scale.x = new_scale.x;
+                scale.y = new_scale.y;
+              }
+              if let Some(new_position) = p {
+                let mut position = object.position.borrow_mut(py);
+                position.x = new_position.x;
+                position.y = new_position.y;
+              }
+              // if let Some(new_rotation) = r {
+              //   let mut rotation = object.rotation.borrow_mut(py);
+              //   rotation.x = new_rotation.x;
+              //   rotation.y = new_rotation.y;
+              // }
             }
           ),
           AnimationUpdate::Camera3DTransform(scale, position, rotation) => {
-            self.world.camera_3d.view = animation.interpolation.camera_transform3d(
-              t,
-              &self.world.camera_3d.scale,
-              &self.world.camera_3d.position,
-              &self.world.camera_3d.rotation,
-              &scale,
-              &position,
-              &rotation
-            );
+            self.world.camera_3d.scale = *scale;
+            self.world.camera_3d.position = *position;
+            self.world.camera_3d.rotation = *rotation;
           },
           AnimationUpdate::Camera2DTransform(scale, position, rotation) => {
-            self.world.camera_2d.view = animation.interpolation.camera_transform2d(
-              t,
-              &self.world.camera_2d.scale,
-              &self.world.camera_2d.position,
-              self.world.camera_2d.rotation,
-              &scale,
-              &position,
-              *rotation
-            );
+            self.world.camera_2d.scale = *scale;
+            self.world.camera_2d.position = *position;
+            self.world.camera_2d.rotation = *rotation;
           },
           AnimationUpdate::Perspective(final_fov, final_near, final_far) => {
-            if let CameraProjection::Perspective(
-              initial_fov,
-              initial_near,
-              initial_far
-            ) = self.world.camera_3d.config {
-              self.world.camera_3d.projection = animation.interpolation.perspective(
-                t,
-                self.world.camera_3d.aspect,
-                initial_fov,
-                initial_near,
-                initial_far,
-                *final_fov,
-                *final_near,
-                *final_far
-              );
+            if let CameraProjection::Perspective(mut fov, mut near, mut far) = self.world.camera_3d.config {
+              fov = *final_fov;
+              near = *final_near;
+              far = *final_far;
             }
-          },
-          // AnimationUpdate::Orthograpic(left, right, bottom, top, near, far) => {
-          //   if let CameraProjection::Orthograpic(config) = self.world.camera_3d.config {
-          //     self.world.camera_3d.projection = animation.interpolation.orthograpic(
-          //       t,
-          //       config.left, config.right, config.bottom, config.top,
-          //       config.near, config.far,
-          //       left, right, bottom, top, near, far
-          //     );
-          //   }
-          // }
-        }
-      }
-
-      self.output.write(&self.world, 1);
-    }
-
-    for animation in animations {
-      match &animation.update {
-        AnimationUpdate::Transform3D(id, scale, position, rotation) => self.world.access_mesh(
-          *id,
-          |mesh| {
-            mesh.scale = *scale;
-            mesh.position = *position;
-            mesh.rotation = *rotation;
-          }
-        ),
-        AnimationUpdate::Transform2D(id, scale, position, rotation) => self.world.access_path(
-          *id,
-          |path| {
-            path.scale = *scale;
-            path.position = *position;
-            path.rotation = *rotation;
-          }
-        ),
-        AnimationUpdate::Camera3DTransform(scale, position, rotation) => {
-          self.world.camera_3d.scale = *scale;
-          self.world.camera_3d.position = *position;
-          self.world.camera_3d.rotation = *rotation;
-        },
-        AnimationUpdate::Camera2DTransform(scale, position, rotation) => {
-          self.world.camera_2d.scale = *scale;
-          self.world.camera_2d.position = *position;
-          self.world.camera_2d.rotation = *rotation;
-        },
-        AnimationUpdate::Perspective(final_fov, final_near, final_far) => {
-          if let CameraProjection::Perspective(mut fov, mut near, mut far) = self.world.camera_3d.config {
-            fov = *final_fov;
-            near = *final_near;
-            far = *final_far;
           }
         }
       }
-    }
+    });
 
     self.world.age += duration;
+    self.world.animating = false;
   }
 
   // pub fn snapshot(&mut self) {
