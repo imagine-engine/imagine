@@ -48,10 +48,12 @@ pub struct PathBuilder {
 pub struct Path {
   pub id: i32,
   #[pyo3(get, set)]
+  pub opacity: f32,
+  #[pyo3(get, set)]
   pub scale: Py<Vector>,
   #[pyo3(get, set)]
   pub position: Py<Vector>,
-  pub rotation: f32
+  pub rotation: f32,
   // pub rotation: Cell<f32>
 }
 

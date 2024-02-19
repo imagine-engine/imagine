@@ -63,10 +63,10 @@ impl RenderGraph {
     graph.stages.push(vec![String::from("fill pass")]);
     graph.operations.insert(String::from("fill pass"), fill_ops);
 
-    // let (stroke_ops, stroke_resources) = RenderOperation::create_stroke_pass(&graph.context);
-    // graph.resources.extend(stroke_resources);
-    // graph.stages.push(vec![String::from("stroke pass")]);
-    // graph.operations.insert(String::from("stroke pass"), stroke_ops);
+    let (stroke_ops, stroke_resources) = RenderOperation::create_stroke_pass(&graph.context);
+    graph.resources.extend(stroke_resources);
+    graph.stages.push(vec![String::from("stroke pass")]);
+    graph.operations.insert(String::from("stroke pass"), stroke_ops);
 
     graph.resources.insert(
       String::from("star"),
@@ -292,7 +292,8 @@ impl RenderGraph {
             paths.push(PathUniform {
               opacity: path.opacity,
               segments: segment_count,
-              _padding: [0.0, 0.0],
+              linecap: 0,
+              stroke_width: 1.0,
               fill_color: [1.0, 1.0, 1.0, 1.0],
               stroke_color: [1.0, 0.0, 0.0, 1.0],
               bounds: path.bounds,

@@ -6,6 +6,8 @@ struct Path {
     // bool evenodd;
     float opacity;
     uint segments;
+    uint linecap;
+    float stroke_width;
     vec4 fill_color;
     vec4 stroke_color;
     vec4 bounds;
@@ -27,11 +29,22 @@ layout(set=1, binding=1) readonly buffer PathBuffer {
 
 layout(set=1, binding=2, rgba8) writeonly uniform image2D stroke;
 
-const float width = 20.0;
-const bool evenodd = true;
+bool buttcap(vec2 p, float thickness, vec2 a, vec2 b) {
+    vec2 p12 = b - a;
+    vec2 p13 = p - a;
+    float d = dot(p12, p13) / length(p12);
+    vec2 p4 = a + normalize(p12) * d;
 
-bool ccw(vec2 a, vec2 b, vec2 c) {
-    return (b.x - a.x) * (c.y - a.y) > (b.y - a.y) * (c.x - a.x);
+    return length(p4 - p) < thickness &&
+           length(p4 - a) <= length(p12) &&
+           length(p4 - b) <= length(p12);
+}
+
+bool roundcap(vec2 p, float thickness, vec2 a, vec2 b) {
+	vec2 ba = b - a;
+	vec2 pa = p - a;
+	float h = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.);
+	return length(pa - h * ba) < thickness;
 }
 
 void main() {
@@ -45,23 +58,14 @@ void main() {
     uint offset = 0;
     for (uint i = 0; i < path.length(); i++) {
         vec3 position = path[i].transform * view_position;
+        for (uint j = offset; j < offset + 4 * path[i].segments; j += 4) {
+            vec2 p1 = vec2(segments[j], segments[j+1]);
+            vec2 p2 = vec2(segments[j+2], segments[j+3]);
+            if (path[i].linecap == 0)
+                continue;
 
-        if (position.x > path[i].bounds.x && position.x < path[i].bounds.z &&
-            position.y > path[i].bounds.y && position.y < path[i].bounds.w
-        ) {
-            uint left = 0;
-            uint right = 0;
-            for (uint j = offset; j < offset + 4 * path[i].segments; j += 4) {
-                vec2 p1 = vec2(segments[j], segments[j+1]);
-                vec2 p2 = vec2(segments[j+2], segments[j+3]);
-                if (p1.y < position.y == p2.y < position.y)
-                    continue;
-
-                if (ccw(p1, p2, position.xy) == p1.y > p2.y) right++;
-                else left++;
-            }
-
-            if (evenodd && right % 2 == 0 || !evenodd && (left > 0 || right > 0)) {
+            if (path[i].linecap == 1 && roundcap(position.xy, path[i].stroke_width, p1, p2) ||
+                path[i].linecap == 2 && buttcap(position.xy, path[i].stroke_width, p1, p2)) {
                 imageStore(
                     stroke,
                     ivec2(gl_GlobalInvocationID.xy),
@@ -73,36 +77,3 @@ void main() {
         offset += path[i].segments;
     }
 }
-
-// void main() {
-//     vec3 view_position = view * vec3(
-//         2 * gl_GlobalInvocationID.x / resolution.x - 1.0,
-//         -(2 * gl_GlobalInvocationID.y / resolution.y - 1.0),
-//         1
-//     );
-//     view_position.x *= resolution.x / resolution.y;
-
-//     uint offset = 0;
-//     for (uint i = 0; i < path.length(); i++) {
-//         vec3 position = path[i].transform * view_position;
-
-//         if (position.x > path[i].bounds.x && position.x < path[i].bounds.z &&
-//             position.y > path[i].bounds.y && position.y < path[i].bounds.w
-//         ) {
-//             for (uint j = offset; j < offset + 4 * path[i].segments; j += 4) {
-//                 vec2 p1 = vec2(segments[j], segments[j+1]);
-//                 vec2 p2 = vec2(segments[j+2], segments[j+3]);
-//                 if (p1.y < position.y != p2.y < position.y &&
-//                     abs(ccw(p1, p2, position.xy)) < width) {
-//                     imageStore(
-//                         stroke,
-//                         ivec2(gl_GlobalInvocationID.xy),
-//                         path[i].opacity * path[i].stroke_color
-//                     );
-//                 }
-//             }
-//         }
-
-//         offset += path[i].segments;
-//     }
-// }

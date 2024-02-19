@@ -421,7 +421,8 @@ impl ModelMaterial {
 pub struct PathUniform {
   pub opacity: f32,
   pub segments: u32,
-  pub _padding: [f32; 2],
+  pub linecap: u32,
+  pub stroke_width: f32,
   pub fill_color: [f32; 4],
   pub stroke_color: [f32; 4],
   pub bounds: [f32; 4],

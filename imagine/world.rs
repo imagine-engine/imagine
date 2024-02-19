@@ -88,7 +88,8 @@ impl World {
         id,
         scale,
         position,
-        rotation: 0.0
+        rotation: 0.0,
+        opacity: 1.0
         // rotation: Cell::new(0.0)
       }
     })

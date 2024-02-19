@@ -48,7 +48,7 @@ void main() {
     for (uint i = 0; i < path.length(); i++) {
         vec3 position = path[i].transform * view_position;
 
-        // Check intersecting segments if within the bounds of the path
+        // Find intersecting segments if within the bounds of the path
         if (position.x > path[i].bounds.x && position.x < path[i].bounds.z &&
             position.y > path[i].bounds.y && position.y < path[i].bounds.w
         ) {
