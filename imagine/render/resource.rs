@@ -27,7 +27,6 @@ pub enum RenderResource {
   Buffer(wgpu::Buffer),
   Material(ModelMaterial),
   Texture(Texture),
-  // Binding(wgpu::BindGroup),
   Uniform {
     buffer: wgpu::Buffer,
     binding: wgpu::BindGroup

@@ -36,10 +36,10 @@ use output::*;
 use loaders::*;
 use math::Vector;
 use color::Color;
-use objects::Path;
 use camera::Camera;
 use world::PyWorld;
 use pyo3::wrap_pymodule;
+use objects::{Path, Text};
 use objects::basic_shapes::*;
 
 use pyo3::prelude::*;
@@ -73,6 +73,7 @@ fn object_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(pentagon, m)?)?;
 
   m.add_class::<Path>()?;
+  m.add_class::<Text>()?;
 
   Ok(())
 }
@@ -110,6 +111,8 @@ fn imagine(_py: Python, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(wait, m)?)?;
   m.add_function(wrap_pyfunction!(record, m)?)?;
   m.add_function(wrap_pyfunction!(stop, m)?)?;
+
+  m.add_class::<Color>()?;
 
   Ok(())
 }

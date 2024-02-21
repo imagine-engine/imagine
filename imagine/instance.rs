@@ -23,10 +23,10 @@ use crate::video::Video;
 use crate::output::Output;
 use crate::render::render;
 use lazy_static::lazy_static;
-use std::collections::{HashMap, BTreeMap};
 use crate::render::RenderGraph;
 use crate::render::primitives::*;
 use crate::world::{World, Domain};
+use std::collections::{HashMap, BTreeMap};
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
 
 lazy_static! {
@@ -143,7 +143,7 @@ impl App {
                   t,
                   &Vector2::<f32>::new(og_scale.x, og_scale.y),
                   &Vector2::<f32>::new(og_position.x, og_position.y),
-                  object.rotation,
+                  *object.rotation.lock().unwrap(),
                   scale.as_ref(),
                   position.as_ref(),
                   *rotation
@@ -229,11 +229,9 @@ impl App {
                 position.x = new_position.x;
                 position.y = new_position.y;
               }
-              // if let Some(new_rotation) = r {
-              //   let mut rotation = object.rotation.borrow_mut(py);
-              //   rotation.x = new_rotation.x;
-              //   rotation.y = new_rotation.y;
-              // }
+              if let Some(new_rotation) = r {
+                *object.rotation.lock().unwrap() = *new_rotation;
+              }
             }
           ),
           AnimationUpdate::Camera3DTransform(scale, position, rotation) => {

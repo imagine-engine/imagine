@@ -20,11 +20,11 @@ use pyo3::prelude::*;
 
 #[pyclass]
 pub struct Color {
-  #[pyo3(get)]
+  #[pyo3(get, set)]
   pub r: u8,
-  #[pyo3(get)]
+  #[pyo3(get, set)]
   pub g: u8,
-  #[pyo3(get)]
+  #[pyo3(get, set)]
   pub b: u8
 }
 
@@ -37,15 +37,17 @@ impl Color {
   #[classattr]
   const BLUE: Color = Color { r: 33, g: 150, b: 243 };
 
-  // #[new]
-  // fn new(hex: String) -> Self {
-  //   let shift = if _____ { 1 } else { 0 }
-  //   Self {
-  //     r: u8::from_str_radix(&hex[0..1], 16).ok(),
-  //     g: u8::from_str_radix(&hex[2..3], 16).ok(),
-  //     b: u8::from_str_radix(&hex[4..5], 16).ok()
-  //   }
-  // }
+  #[new]
+  fn new(hex: String) -> PyResult<Self> {
+    // let shift = if _____ { 1 } else { 0 }
+    Ok(
+      Self {
+        r: u8::from_str_radix(&hex[0..1], 16).unwrap(),
+        g: u8::from_str_radix(&hex[2..3], 16).unwrap(),
+        b: u8::from_str_radix(&hex[4..5], 16).unwrap()
+      }
+    )
+  }
 
   fn __eq__(&self, other: &Color) -> PyResult<bool> {
     Ok(self.r == other.r && self.g == other.g && self.b == other.b)

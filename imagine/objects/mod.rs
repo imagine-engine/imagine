@@ -16,9 +16,11 @@
   limitations under the License.
 *******************************************************************************/
 
-mod mesh;
 mod path;
+mod text;
+mod mesh;
 pub mod basic_shapes;
 
 pub use path::*;
+pub use text::*;
 pub use mesh::*;

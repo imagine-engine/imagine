@@ -6,6 +6,8 @@ struct Path {
     // bool evenodd;
     float opacity;
     uint segments;
+    uint linecap;
+    float stroke_width;
     vec4 fill_color;
     vec4 stroke_color;
     vec4 bounds;

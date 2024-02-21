@@ -25,6 +25,7 @@ use crate::render::{RenderContext, RenderResource, RenderOperation};
 use crate::render::primitives::{
   Model,
   Uniform3D,
+  PathConfig,
   PathUniform,
   ModelMaterial,
   FillConfigUniform,
@@ -288,22 +289,7 @@ impl RenderGraph {
               idx += (4 + 2 * controls) as usize;
             }
 
-            let transform = if world.animating { path.transform } else { path.get_transform() };
-            paths.push(PathUniform {
-              opacity: path.opacity,
-              segments: segment_count,
-              linecap: 0,
-              stroke_width: 1.0,
-              fill_color: [1.0, 1.0, 1.0, 1.0],
-              stroke_color: [1.0, 0.0, 0.0, 1.0],
-              bounds: path.bounds,
-              transform: [
-                [transform.m11, transform.m21, transform.m31, 0.0],
-                [transform.m12, transform.m22, transform.m32, 0.0],
-                [transform.m13, transform.m23, transform.m33, 0.0]
-              ]
-            });
-
+            paths.push(PathConfig::uniform(path, world.animating, segment_count));
             offset += path.path_segments;
           }
 

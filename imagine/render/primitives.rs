@@ -17,9 +17,11 @@
 *******************************************************************************/
 
 use pyo3::Py;
+use crate::Color;
 use crate::Python;
 use crate::math::Vector;
 use wgpu::util::DeviceExt;
+use std::sync::{Arc, Mutex};
 use crate::render::RenderContext;
 use crate::animation::{Animation, AnimationUpdate};
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
@@ -432,9 +434,11 @@ pub struct PathUniform {
 pub struct PathConfig {
   pub opacity: f32,
   pub bounds: [f32; 4],
-  pub rotation: f32,
+  pub fill: Py<Color>,
+  pub stroke: Py<Color>,
   pub scale: Py<Vector>,
   pub position: Py<Vector>,
+  pub rotation: Arc<Mutex<f32>>,
   pub transform: Matrix3<f32>,
   pub path_segments: usize
 }
@@ -480,23 +484,52 @@ impl Object3D {
 }
 
 impl PathConfig {
-  pub fn get_transform(&self) -> Matrix3<f32> {
+  pub fn uniform(path: &Self, animate: bool, segments: u32) -> PathUniform {
     Python::with_gil(|py| {
-      let s = self.scale.borrow(py);
-      let scale = Matrix3::new_nonuniform_scaling(&Vector2::<f32>::new(
-        1.0 / s.x,
-        1.0 / s.y
-      ));
+      let transform = if animate { path.transform } else {
+        let s = path.scale.borrow(py);
+        let scale = Matrix3::new_nonuniform_scaling(&Vector2::<f32>::new(
+          1.0 / s.x,
+          1.0 / s.y
+        ));
+  
+        let p = path.position.borrow(py);
+        let position = Matrix3::new_translation(&Vector2::<f32>::new(
+          -p.x,
+          -p.y
+        ));
+  
+        let rotation = Matrix3::new_rotation(*path.rotation.lock().unwrap());
+  
+        scale * position * rotation
+      };
 
-      let p = self.position.borrow(py);
-      let position = Matrix3::new_translation(&Vector2::<f32>::new(
-        -p.x,
-        -p.y
-      ));
-
-      let rotation = Matrix3::new_rotation(self.rotation);
-      
-      scale * position * rotation
+      let fill = path.fill.borrow(py);
+      let stroke = path.stroke.borrow(py);
+      PathUniform {
+        opacity: path.opacity,
+        segments,
+        linecap: 0,
+        stroke_width: 1.0,
+        bounds: path.bounds,
+        fill_color: [
+          fill.r as f32 / 255.0,
+          fill.g as f32 / 255.0,
+          fill.b as f32 / 255.0,
+          1.0
+        ],
+        stroke_color: [
+          stroke.r as f32 / 255.0,
+          stroke.g as f32 / 255.0,
+          stroke.b as f32 / 255.0,
+          1.0
+        ],
+        transform: [
+          [transform.m11, transform.m21, transform.m31, 0.0],
+          [transform.m12, transform.m22, transform.m32, 0.0],
+          [transform.m13, transform.m23, transform.m33, 0.0]
+        ]
+      }
     })
   }
 }

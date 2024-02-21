@@ -18,8 +18,8 @@
 
 use pyo3::prelude::*;
 use nalgebra::Matrix4;
-use crate::objects::{Mesh, Path, PathBuilder};
 use crate::render::primitives::Vertex3D;
+use crate::objects::{Mesh, Path, PathBuilder, PathAlignment};
 
 #[pyfunction]
 #[pyo3(name="Cube")]

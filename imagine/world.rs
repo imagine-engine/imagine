@@ -16,16 +16,16 @@
   limitations under the License.
 *******************************************************************************/
 
-// use std::cell::Cell;
+use crate::Color;
 use pyo3::prelude::*;
 use nalgebra::Matrix3;
+use crate::math::Vector;
+use crate::objects::Path;
 use crate::controller::*;
+use std::sync::{Arc, Mutex};
 use crate::instance::IMAGINE;
 use crate::render::primitives::*;
-use crate::math::Vector;
 use std::collections::{HashMap, BTreeMap};
-
-use crate::objects::Path;
 
 pub enum Domain {
   World3D,
@@ -70,28 +70,29 @@ impl World {
     self.controls.extend(controls);
 
     Python::with_gil(|py| {
-      let scale = Py::new(py, Vector::new(1.0, 1.0, 0.0)).unwrap();
-      let position = Py::new(py, Vector::new(0.0, 0.0, 0.0)).unwrap();
+      let path = Path {
+        id,
+        rotation: Arc::new(Mutex::new(0.0)),
+        scale: Py::new(py, Vector::new(1.0, 1.0, 0.0)).unwrap(),
+        position: Py::new(py, Vector::new(0.0, 0.0, 0.0)).unwrap(),
+        fill: Py::new(py, Color { r: 255, g: 255, b: 255 }).unwrap(),
+        stroke: Py::new(py, Color { r: 255, g: 0, b: 0 }).unwrap()
+      };
+
       let config = PathConfig {
         opacity: 1.0,
         bounds,
         path_segments,
-        rotation: 0.0,
-        // rotation: Cell::new(0.0),
-        scale: Py::clone_ref(&scale, py),
-        position: Py::clone_ref(&position, py),
+        fill: Py::clone_ref(&path.fill, py),
+        stroke: Py::clone_ref(&path.stroke, py),
+        rotation: Arc::clone(&path.rotation),
+        scale: Py::clone_ref(&path.scale, py),
+        position: Py::clone_ref(&path.position, py),
         transform: Matrix3::identity()
       };
       self.paths.insert(id, config);
-
-      Path {
-        id,
-        scale,
-        position,
-        rotation: 0.0,
-        opacity: 1.0
-        // rotation: Cell::new(0.0)
-      }
+      
+      path
     })
   }
 

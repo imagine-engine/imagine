@@ -16,29 +16,33 @@
   limitations under the License.
 *******************************************************************************/
 
-// use std::cell::Cell;
+use crate::Color;
 use pyo3::prelude::*;
+use ttf_parser as ttf;
 use crate::animation::*;
 use crate::math::Vector;
 use std::f32::consts::PI;
 use svgtypes::PathParser;
 use svgtypes::PathSegment;
 use svgtypes::PathSegment::*;
+use std::sync::{Arc, Mutex};
 use crate::instance::IMAGINE;
 use nalgebra::{Vector2, Matrix3};
 use crate::render::primitives::PathConfig;
 
-// pub enum Alignment {
-//   TopLeft,
-//   TopRight,
-//   BottomLeft,
-//   BottomRight,
-//   Center
-// }
+pub enum PathAlignment {
+  TopLeft,
+  TopRight,
+  BottomLeft,
+  BottomRight,
+  Center
+}
 
 #[pyclass]
 pub struct PathBuilder {
+  aligned: bool,
   segment_closed: bool,
+  start: Option<[f32; 2]>,
   temp_bounds: Option<[f32; 4]>,
   temp_points: Vec<f32>,
   temp_segments: Vec<u8>
@@ -48,13 +52,14 @@ pub struct PathBuilder {
 pub struct Path {
   pub id: i32,
   #[pyo3(get, set)]
-  pub opacity: f32,
+  pub fill: Py<Color>,
+  #[pyo3(get, set)]
+  pub stroke: Py<Color>,
   #[pyo3(get, set)]
   pub scale: Py<Vector>,
   #[pyo3(get, set)]
   pub position: Py<Vector>,
-  pub rotation: f32,
-  // pub rotation: Cell<f32>
+  pub rotation: Arc<Mutex<f32>>
 }
 
 #[pymethods]
@@ -62,13 +67,7 @@ impl Path {
   #[new]
   #[pyo3(signature=(d=""))]
   pub fn new(d: &str) -> Self {
-    let mut path = PathBuilder::new();
-    for seg in PathParser::from(d) {
-      if let Ok(segment) = seg {
-        path.push(segment);
-      }
-    }
-
+    let mut path = PathBuilder::from(d);
     path.build()
   }
 
@@ -82,14 +81,12 @@ impl Path {
 
   #[getter(rotation)]
   fn get_rotation(&self) -> PyResult<f32> {
-    Ok(self.rotation)
-    // Ok(self.rotation.get())
+    Ok(*self.rotation.lock().unwrap())
   }
 
   #[setter(rotation)]
   fn set_rotation(&mut self, new_rotation: f32) {
-    self.rotation = new_rotation;
-    // self.rotation.set(new_rotation);
+    *self.rotation.lock().unwrap() = new_rotation;
   }
 
   // #[pyo3(signature=(py_args="*", t=1.0))]
@@ -105,7 +102,7 @@ impl Path {
           None,
           None
         ),
-        interpolation: Interpolation::Linear
+        interpolation: Interpolation::EaseInOut
       }
     ]);
   }
@@ -121,7 +118,7 @@ impl Path {
           Some(Vector2::new(x, y)),
           None
         ),
-        interpolation: Interpolation::Linear
+        interpolation: Interpolation::EaseInOut
       }
     ]);
   }
@@ -137,7 +134,7 @@ impl Path {
           None,
           Some(angle)
         ),
-        interpolation: Interpolation::Linear
+        interpolation: Interpolation::EaseInOut
       }
     ]);
   }
@@ -151,6 +148,10 @@ impl PathBuilder {
 
     self.update_bounds(x, y);
     self.segment_closed = false;
+    match self.start {
+      None => self.start = Some([x, y]),
+      _ => ()
+    }
   }
 
   pub fn line_to(&mut self, x: f32, y: f32) {
@@ -239,26 +240,34 @@ impl PathBuilder {
     self.segment_closed = true;
   }
 
-  pub fn close(&mut self) {
-    if let Some(bounds) = self.temp_bounds {
-      self.line_to(self.temp_points[0], self.temp_points[1]);
+  pub fn shift(&mut self, x: f32, y: f32) {
+    for i in (0..self.temp_points.len()-1).step_by(2) {
+      self.temp_points[i] += x;
+      self.temp_points[i+1] += y;
+    }
 
-      let cx = (bounds[0] + bounds[2]) / 2.0;
-      let cy = (bounds[1] + bounds[3]) / 2.0;
-      for i in (0..self.temp_points.len()-1).step_by(2) {
-        self.temp_points[i] -= cx;
-        self.temp_points[i+1] -= cy;
-      }
+    if let Some(ref mut bounds) = self.temp_bounds {
+      bounds[0] += x;
+      bounds[1] += y;
+      bounds[2] += x;
+      bounds[3] += y;
     }
   }
 
+  pub fn close(&mut self) {
+    if let Some(point) = self.start {
+      self.line_to(point[0], point[1]);
+    }
+    self.start = None;
+  }
+
   pub fn build(&mut self) -> Path {
+    if !self.aligned {
+      self.align(PathAlignment::Center);
+    }
+
     let bounds = match self.temp_bounds {
-      Some(bbox) => {
-        let cx = (bbox[2] + bbox[0]) / 2.0;
-        let cy = (bbox[3] + bbox[1]) / 2.0;
-        [bbox[0]-cx, bbox[1]-cy, bbox[2]-cx, bbox[3]-cy]
-      },
+      Some(bbox) => bbox,
       None => [0.0, 0.0, 0.0, 0.0]
     };
 
@@ -281,11 +290,25 @@ impl PathBuilder {
 impl PathBuilder {
   pub fn new() -> Self {
     Self {
+      start: None,
+      aligned: false,
       segment_closed: false,
       temp_points: Vec::new(),
       temp_segments: Vec::new(),
       temp_bounds: None
     }
+  }
+
+  pub fn from(d: &str) -> Self {
+    let mut builder = Self::new();
+
+    for seg in PathParser::from(d) {
+      if let Ok(segment) = seg {
+        builder.push(segment);
+      }
+    }
+
+    builder
   }
 
   fn update_bounds(&mut self, x: f32, y: f32) {
@@ -331,5 +354,71 @@ impl PathBuilder {
       ClosePath { abs } => self.close(),
       _ => ()
     }
+  }
+
+  pub fn append(&mut self, other: &PathBuilder) {
+    if let Some(bounds) = other.temp_bounds {
+      self.update_bounds(bounds[0], bounds[1]);
+      self.update_bounds(bounds[2], bounds[3]);
+    }
+
+    self.temp_points.extend(&other.temp_points);
+    self.temp_segments.extend(&other.temp_segments);
+  }
+
+  pub fn fit_height(&mut self, height: f32) {
+    let scale = if let Some(bounds) = self.temp_bounds {
+      height / (bounds[3] - bounds[1])
+    } else { 1.0 };
+
+    for value in self.temp_points.iter_mut() {
+      *value *= scale;
+    }
+
+    if let Some(ref mut bounds) = self.temp_bounds {
+      bounds[0] *= scale;
+      bounds[1] *= scale;
+      bounds[2] *= scale;
+      bounds[3] *= scale;
+    }
+  }
+
+  pub fn align(&mut self, alignment: PathAlignment) {
+    self.aligned = true;
+    if let Some(bounds) = self.temp_bounds {
+      match alignment {
+        PathAlignment::BottomLeft => self.shift(-bounds[0], -bounds[1]),
+        PathAlignment::TopLeft => self.shift(-bounds[0], -bounds[3]),
+        PathAlignment::BottomRight => self.shift(-bounds[2], -bounds[1]),
+        PathAlignment::TopRight => self.shift(-bounds[2], -bounds[3]),
+        PathAlignment::Center => {
+          let cx = (bounds[0] + bounds[2]) / 2.0;
+          let cy = (bounds[1] + bounds[3]) / 2.0;
+          self.shift(-cx, -cy);
+        }
+      }
+    }
+  }
+}
+
+impl ttf::OutlineBuilder for PathBuilder {
+  fn move_to(&mut self, x: f32, y: f32) {
+    self.move_to(x, y);
+  }
+
+  fn line_to(&mut self, x: f32, y: f32) {
+    self.line_to(x, y);
+  }
+
+  fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+    self.quad_to(x, y, x1, y1);
+  }
+
+  fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+    self.cubic_to(x, y, x1, y1, x2, y2);
+  }
+
+  fn close(&mut self) {
+    self.close();
   }
 }

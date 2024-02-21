@@ -73,8 +73,8 @@ impl RenderContext {
       device,
       queue,
       max_vertices: 1000,
-      max_models: 100,
-      max_paths: 100,
+      max_models: 10000,
+      max_paths: 10000,
       size: wgpu::Extent3d {
         width: 1920,
         height: 1080,
