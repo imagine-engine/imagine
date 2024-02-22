@@ -111,6 +111,7 @@ fn imagine(_py: Python, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(wait, m)?)?;
   m.add_function(wrap_pyfunction!(record, m)?)?;
   m.add_function(wrap_pyfunction!(stop, m)?)?;
+  m.add_function(wrap_pyfunction!(run_loop, m)?)?;
 
   m.add_class::<Color>()?;
 

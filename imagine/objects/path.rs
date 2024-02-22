@@ -43,9 +43,9 @@ pub struct PathBuilder {
   aligned: bool,
   segment_closed: bool,
   start: Option<[f32; 2]>,
-  temp_bounds: Option<[f32; 4]>,
   temp_points: Vec<f32>,
-  temp_segments: Vec<u8>
+  temp_segments: Vec<u8>,
+  pub temp_bounds: Option<[f32; 4]>
 }
 
 #[pyclass]
@@ -309,6 +309,29 @@ impl PathBuilder {
     }
 
     builder
+  }
+
+  pub fn width(&self) -> f32 {
+    if let Some(bounds) = self.temp_bounds {
+      return bounds[2] - bounds[0];
+    }
+    
+    0.0
+  }
+
+  pub fn height(&self) -> f32 {
+    if let Some(bounds) = self.temp_bounds {
+      return bounds[3] - bounds[1];
+    }
+    
+    0.0
+  }
+
+  pub fn set_bounds(&mut self, bbox: ttf::Rect) {
+    self.temp_bounds = Some([
+      bbox.x_min as f32, bbox.y_min as f32,
+      bbox.x_max as f32, bbox.y_max as f32
+    ]);
   }
 
   fn update_bounds(&mut self, x: f32, y: f32) {

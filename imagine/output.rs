@@ -89,7 +89,7 @@ pub fn wait(t: f32) {
 }
 
 #[pyfunction]
-#[pyo3(signature = (path="video.mp4", fps=24, width=1920, height=1080, bitrate=8000))]
+#[pyo3(signature=(path="video.mp4", fps=24, width=1920, height=1080, bitrate=8000))]
 pub fn record(
   path: &str,
   fps: i32,
@@ -109,4 +109,13 @@ pub fn record(
 #[pyfunction]
 pub fn stop() {
   IMAGINE.lock().unwrap().output.stop();
+}
+
+#[pyfunction]
+pub fn run_loop(py: Python<'_>, func: Py<PyAny>) {
+// #[pyo3(signature=(func, duration=10.0))]
+// pub fn run_loop(py: Python<'_>, func: Py<PyAny>, duration: f32) {
+  IMAGINE.lock().unwrap().repeat(10.0, || {
+    let _ = func.call0(py);
+  });
 }

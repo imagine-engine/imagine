@@ -43,25 +43,29 @@ impl Text {
   pub fn new(content: String, size: f32) -> PyResult<Self> {
     let font = Font::default();
     let mut path = PathBuilder::new();
-    let mut offset_x = 0;
+    let mut offset_x = 0.0;
+    let mut offset_y = 0.0;
     for character in content.chars() {
+      if character == ' ' {
+        offset_x += 0.2 * size;
+        continue;
+      } else if character == '\n' {
+        offset_x = 0.0;
+        offset_y -= size;
+        continue;
+      }
+
       if let Some(glyph_id) = font.cmap.get(&character) {
         if let Some(glyph) = font.glyphs.get(glyph_id) {
           let mut glyph_path = PathBuilder::new();
           glyph_path.append(glyph);
           glyph_path.fit_height(size);
-          glyph_path.shift(size * offset_x as f32, 0.0);
+          glyph_path.shift(offset_x, offset_y);
           path.append(&glyph_path);
-          offset_x += 1;
+          offset_x += glyph_path.width();
         }
       }
     }
-
-    // path.align(PathAlignment::TopLeft);
-    // for chr in content.chars() {
-    //   if let Some(glyph_path) = font.glyphs.get(chr) {
-    //   }
-    // }
 
     Ok(Text { content, font, path: path.build() })
   }
@@ -105,11 +109,20 @@ impl Font {
   pub fn from(face: ttf::Face) -> Self {
     let mut cmap = HashMap::new();
     let mut glyphs = HashMap::new();
-    let utf8 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let utf8 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789?!.";
+
     for code in utf8.chars() {
       if let Some(glyph) = face.glyph_index(code) {
         let mut builder = PathBuilder::new();
         face.outline_glyph(glyph, &mut builder);
+        if let Some(ref mut bounds) = builder.temp_bounds {
+          let advance = face.glyph_hor_advance(glyph).unwrap_or(0) as f32;
+          let bbox = face.global_bounding_box();
+          bounds[0] = bbox.x_min as f32;
+          bounds[1] = bbox.y_min as f32;
+          bounds[2] = bounds[0] + advance;
+          bounds[3] = bbox.y_max as f32;
+        }
         glyphs.insert(glyph, builder);
         cmap.insert(code, glyph);
       }

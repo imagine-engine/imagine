@@ -114,6 +114,17 @@ impl App {
     }
   }
 
+  pub fn repeat<F>(&mut self, duration: f32, f: F) where F: Fn() {
+    if let Some(fps) = self.output.video.get_fps() {
+      let delta = 1.0 / fps as f32;
+      for _ in 0..(duration * fps as f32) as usize {
+        f();
+        self.world.age += delta;
+        self.output.write(&mut self.world, 1);
+      }
+    }
+  }
+
   pub fn run(&mut self, duration: f32, animations: &[Animation]) {
     self.world.animating = true;
     let frames = (duration * self.output.video.get_fps().unwrap() as f32) as u32;
