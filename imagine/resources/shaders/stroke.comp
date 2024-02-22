@@ -14,6 +14,16 @@ struct Path {
     mat3 transform;
 };
 
+struct Ellipse {
+    float opacity;
+    float radius;
+    float aspect_ratio;
+    float stroke_width;
+    vec4 fill_color;
+    vec4 stroke_color;
+    mat3 transform;
+};
+
 layout(set=0, binding=0) uniform ConfigBuffer {
     vec2 resolution;
     mat3 view;
@@ -27,7 +37,11 @@ layout(set=1, binding=1) readonly buffer PathBuffer {
     Path path[];
 };
 
-layout(set=1, binding=2, rgba8) writeonly uniform image2D stroke;
+layout(set=1, binding=2) readonly buffer EllipseBuffer {
+    Ellipse ellipse[];
+};
+
+layout(set=1, binding=3, rgba8) writeonly uniform image2D stroke;
 
 bool buttcap(vec2 p, float thickness, vec2 a, vec2 b) {
     vec2 p12 = b - a;
@@ -54,6 +68,18 @@ void main() {
         1
     );
     view_position.x *= resolution.x / resolution.y;
+
+    for (int i = 0; i < ellipse.length(); i++) {
+        vec3 position = ellipse[i].transform * view_position;
+        position.y *= ellipse[i].aspect_ratio;
+        if (abs(length(position.xy) - ellipse[i].radius) < ellipse[i].stroke_width) {
+            imageStore(
+                stroke,
+                ivec2(gl_GlobalInvocationID.xy),
+                ellipse[i].opacity * ellipse[i].stroke_color
+            );
+        }
+    }
 
     uint offset = 0;
     for (uint i = 0; i < path.length(); i++) {

@@ -21,14 +21,22 @@ use crate::objects::Path;
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
 
 pub enum AnimationUpdate {
-  Transform2D(i32, Option<Vector2<f32>>, Option<Vector2<f32>>, Option<f32>),
+  PathTransform2D(
+    i32,
+    Option<Vector2<f32>>,
+    Option<Vector2<f32>>,
+    Option<f32>
+  ),
+  EllipseTransform2D(
+    i32,
+    Option<Vector2<f32>>,
+    Option<Vector2<f32>>,
+    Option<f32>
+  ),
   Transform3D(i32, Vector3<f32>, Vector3<f32>, Vector3<f32>),
   Camera3DTransform(Vector3<f32>, Vector3<f32>, Vector3<f32>),
   Camera2DTransform(Vector2<f32>, Vector2<f32>, f32),
-  Perspective(f32, f32, f32),
-
-  // Orthograpic(f32, f32, f32, f32, f32, f32)
-  // Opacity2D(f32),
+  Perspective(f32, f32, f32)
 }
 
 pub enum Interpolation {

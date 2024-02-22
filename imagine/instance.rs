@@ -37,6 +37,7 @@ lazy_static! {
       // domain: Domain::World3D,
       domain: Domain::Default,
       lights: HashMap::new(),
+      ellipses: HashMap::new(),
       camera_2d: Camera2D::default(),
       camera_3d: Camera3D::default(),
       paths: BTreeMap::new(),
@@ -114,7 +115,7 @@ impl App {
     }
   }
 
-  pub fn repeat<F>(&mut self, duration: f32, f: F) where F: Fn() {
+  pub fn keyframes<F>(&mut self, duration: f32, f: F) where F: Fn() {
     if let Some(fps) = self.output.video.get_fps() {
       let delta = 1.0 / fps as f32;
       for _ in 0..(duration * fps as f32) as usize {
@@ -145,7 +146,23 @@ impl App {
                 );
               }
             ),
-            AnimationUpdate::Transform2D(id, scale, position, rotation) => self.world.access_path(
+            AnimationUpdate::PathTransform2D(id, scale, position, rotation) => self.world.access_path(
+              *id, |object| {
+                let og_scale = object.scale.borrow(py);
+                let og_position = object.position.borrow(py);
+
+                object.transform = animation.interpolation.transform2d(
+                  t,
+                  &Vector2::<f32>::new(og_scale.x, og_scale.y),
+                  &Vector2::<f32>::new(og_position.x, og_position.y),
+                  *object.rotation.lock().unwrap(),
+                  scale.as_ref(),
+                  position.as_ref(),
+                  *rotation
+                );
+              }
+            ),
+            AnimationUpdate::EllipseTransform2D(id, scale, position, rotation) => self.world.access_ellipse(
               *id, |object| {
                 let og_scale = object.scale.borrow(py);
                 let og_position = object.position.borrow(py);
@@ -227,7 +244,25 @@ impl App {
               mesh.rotation = *rotation;
             }
           ),
-          AnimationUpdate::Transform2D(id, s, p, r) => self.world.access_path(
+          AnimationUpdate::PathTransform2D(id, s, p, r) => self.world.access_path(
+            *id,
+            |object| {
+              if let Some(new_scale) = s {
+                let mut scale = object.scale.borrow_mut(py);
+                scale.x = new_scale.x;
+                scale.y = new_scale.y;
+              }
+              if let Some(new_position) = p {
+                let mut position = object.position.borrow_mut(py);
+                position.x = new_position.x;
+                position.y = new_position.y;
+              }
+              if let Some(new_rotation) = r {
+                *object.rotation.lock().unwrap() = *new_rotation;
+              }
+            }
+          ),
+          AnimationUpdate::EllipseTransform2D(id, s, p, r) => self.world.access_ellipse(
             *id,
             |object| {
               if let Some(new_scale) = s {

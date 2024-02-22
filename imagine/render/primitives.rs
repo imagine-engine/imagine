@@ -443,6 +443,30 @@ pub struct PathConfig {
   pub path_segments: usize
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct EllipseUniform {
+  pub opacity: f32,
+  pub radius: f32,
+  pub aspect_ratio: f32,
+  pub stroke_width: f32,
+  pub fill_color: [f32; 4],
+  pub stroke_color: [f32; 4],
+  pub transform: [[f32; 4]; 3]
+}
+
+pub struct EllipseConfig {
+  pub opacity: f32,
+  pub width: f32,
+  pub height: f32,
+  pub fill: Py<Color>,
+  pub stroke: Py<Color>,
+  pub scale: Py<Vector>,
+  pub position: Py<Vector>,
+  pub rotation: Arc<Mutex<f32>>,
+  pub transform: Matrix3<f32>
+}
+
 pub struct Object3D {
   pub material: String,
   pub vertices: Vec<Vertex3D>,
@@ -512,6 +536,56 @@ impl PathConfig {
         linecap: 0,
         stroke_width: 1.0,
         bounds: path.bounds,
+        fill_color: [
+          fill.r as f32 / 255.0,
+          fill.g as f32 / 255.0,
+          fill.b as f32 / 255.0,
+          1.0
+        ],
+        stroke_color: [
+          stroke.r as f32 / 255.0,
+          stroke.g as f32 / 255.0,
+          stroke.b as f32 / 255.0,
+          1.0
+        ],
+        transform: [
+          [transform.m11, transform.m21, transform.m31, 0.0],
+          [transform.m12, transform.m22, transform.m32, 0.0],
+          [transform.m13, transform.m23, transform.m33, 0.0]
+        ]
+      }
+    })
+  }
+}
+
+impl EllipseConfig {
+  pub fn uniform(ellipse: &Self, animate: bool) -> EllipseUniform {
+    Python::with_gil(|py| {
+      let transform = if animate { ellipse.transform } else {
+        let s = ellipse.scale.borrow(py);
+        let scale = Matrix3::new_nonuniform_scaling(&Vector2::<f32>::new(
+          1.0 / s.x,
+          1.0 / s.y
+        ));
+  
+        let p = ellipse.position.borrow(py);
+        let position = Matrix3::new_translation(&Vector2::<f32>::new(
+          -p.x,
+          -p.y
+        ));
+  
+        let rotation = Matrix3::new_rotation(*ellipse.rotation.lock().unwrap());
+  
+        scale * position * rotation
+      };
+
+      let fill = ellipse.fill.borrow(py);
+      let stroke = ellipse.stroke.borrow(py);
+      EllipseUniform {
+        opacity: ellipse.opacity,
+        radius: ellipse.width,
+        aspect_ratio: ellipse.width / ellipse.height,
+        stroke_width: 0.0,
         fill_color: [
           fill.r as f32 / 255.0,
           fill.g as f32 / 255.0,

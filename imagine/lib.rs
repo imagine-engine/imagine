@@ -34,12 +34,12 @@ mod controller;
 use shader::*;
 use output::*;
 use loaders::*;
+use objects::*;
 use math::Vector;
 use color::Color;
 use camera::Camera;
 use world::PyWorld;
 use pyo3::wrap_pymodule;
-use objects::{Path, Text};
 use objects::basic_shapes::*;
 
 use pyo3::prelude::*;
@@ -71,9 +71,11 @@ fn object_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(triangle, m)?)?;
   m.add_function(wrap_pyfunction!(rectangle, m)?)?;
   m.add_function(wrap_pyfunction!(pentagon, m)?)?;
+  m.add_function(wrap_pyfunction!(circle, m)?)?;
 
   m.add_class::<Path>()?;
   m.add_class::<Text>()?;
+  m.add_class::<Ellipse>()?;
 
   Ok(())
 }

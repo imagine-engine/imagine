@@ -25,9 +25,11 @@ use crate::render::{RenderContext, RenderResource, RenderOperation};
 use crate::render::primitives::{
   Model,
   Uniform3D,
+  ModelMaterial,
   PathConfig,
   PathUniform,
-  ModelMaterial,
+  EllipseConfig,
+  EllipseUniform,
   FillConfigUniform,
   StrokeConfigUniform
 };
@@ -223,6 +225,7 @@ impl RenderGraph {
         if let Some(RenderResource::Layer(
           segment_buffer,
           path_buffer,
+          ellipse_buffer,
           _
         )) = self.resources.get_mut("world_2d") {
           let mut idx = 0;
@@ -230,6 +233,11 @@ impl RenderGraph {
           let mut segment_count = 0;
           let mut segments: Vec<f32> = Vec::new();
           let mut paths: Vec<PathUniform> = Vec::new();
+          let mut ellipses: Vec<EllipseUniform> = Vec::new();
+
+          for ellipse in world.ellipses.values() {
+            ellipses.push(EllipseConfig::uniform(ellipse, world.animating));
+          }
 
           for path in world.paths.values() {
             for i in offset..path.path_segments {
@@ -299,6 +307,10 @@ impl RenderGraph {
 
           self.context.queue.write_buffer(
             &path_buffer, 0, bytemuck::cast_slice(&paths)
+          );
+
+          self.context.queue.write_buffer(
+            &ellipse_buffer, 0, bytemuck::cast_slice(&ellipses)
           );
         }
       }

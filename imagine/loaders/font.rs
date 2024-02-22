@@ -22,7 +22,7 @@ use pyo3::exceptions::PyValueError;
 
 #[pyfunction]
 pub fn load_font(path: &str) -> PyResult<Font> {
-  if let Ok(font_data) = std::fs::read(Path::new(path)) {
+  if let Ok(font_data) = std::fs::read(path) {
     if let Ok(face) = ttf::Face::parse(&font_data, 0) {
       Ok(Font { face })
     }

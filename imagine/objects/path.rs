@@ -28,7 +28,6 @@ use svgtypes::PathSegment::*;
 use std::sync::{Arc, Mutex};
 use crate::instance::IMAGINE;
 use nalgebra::{Vector2, Matrix3};
-use crate::render::primitives::PathConfig;
 
 pub enum PathAlignment {
   TopLeft,
@@ -96,7 +95,7 @@ impl Path {
     IMAGINE.lock().unwrap().run(t, &[
       Animation {
         duration: t,
-        update: AnimationUpdate::Transform2D(
+        update: AnimationUpdate::PathTransform2D(
           self.id,
           Some(Vector2::new(x, y)),
           None,
@@ -112,7 +111,7 @@ impl Path {
     IMAGINE.lock().unwrap().run(t, &[
       Animation {
         duration: t,
-        update: AnimationUpdate::Transform2D(
+        update: AnimationUpdate::PathTransform2D(
           self.id,
           None,
           Some(Vector2::new(x, y)),
@@ -128,7 +127,7 @@ impl Path {
     IMAGINE.lock().unwrap().run(t, &[
       Animation {
         duration: t,
-        update: AnimationUpdate::Transform2D(
+        update: AnimationUpdate::PathTransform2D(
           self.id,
           None,
           None,

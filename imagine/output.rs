@@ -115,7 +115,7 @@ pub fn stop() {
 pub fn run_loop(py: Python<'_>, func: Py<PyAny>) {
 // #[pyo3(signature=(func, duration=10.0))]
 // pub fn run_loop(py: Python<'_>, func: Py<PyAny>, duration: f32) {
-  IMAGINE.lock().unwrap().repeat(10.0, || {
+  IMAGINE.lock().unwrap().keyframes(10.0, || {
     let _ = func.call0(py);
   });
 }

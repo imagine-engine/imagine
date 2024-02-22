@@ -20,11 +20,11 @@ use crate::Color;
 use pyo3::prelude::*;
 use nalgebra::Matrix3;
 use crate::math::Vector;
-use crate::objects::Path;
 use crate::controller::*;
 use std::sync::{Arc, Mutex};
 use crate::instance::IMAGINE;
 use crate::render::primitives::*;
+use crate::objects::{Path, Ellipse};
 use std::collections::{HashMap, BTreeMap};
 
 pub enum Domain {
@@ -44,6 +44,7 @@ pub struct World {
   // pub cameras_2d: HashMap<i32, Camera2D>,
   pub lights: HashMap<i32, WorldLight>,
   pub meshes: HashMap<i32, Object3D>,
+  pub ellipses: HashMap<i32, EllipseConfig>,
   pub paths: BTreeMap<i32, PathConfig>,
   pub points: Vec<f32>,
   pub controls: Vec<u8>,
@@ -96,6 +97,39 @@ impl World {
     })
   }
 
+  pub fn add_ellipse(
+    &mut self,
+    width: f32,
+    height: f32
+  ) -> Ellipse {
+    let id = self.ellipses.len() as i32;
+    Python::with_gil(|py| {
+      let ellipse = Ellipse {
+        id,
+        rotation: Arc::new(Mutex::new(0.0)),
+        scale: Py::new(py, Vector::new(1.0, 1.0, 0.0)).unwrap(),
+        position: Py::new(py, Vector::new(0.0, 0.0, 0.0)).unwrap(),
+        fill: Py::new(py, Color { r: 255, g: 255, b: 255 }).unwrap(),
+        stroke: Py::new(py, Color { r: 255, g: 0, b: 0 }).unwrap()
+      };
+
+      let config = EllipseConfig {
+        opacity: 1.0,
+        width,
+        height,
+        fill: Py::clone_ref(&ellipse.fill, py),
+        stroke: Py::clone_ref(&ellipse.stroke, py),
+        rotation: Arc::clone(&ellipse.rotation),
+        scale: Py::clone_ref(&ellipse.scale, py),
+        position: Py::clone_ref(&ellipse.position, py),
+        transform: Matrix3::identity()
+      };
+      self.ellipses.insert(id, config);
+      
+      ellipse
+    })
+  }
+
   pub fn add_camera2d(&mut self, camera: Camera2D) -> Camera2DController {
     // let id = self.cameras_2d.len() as i32;
     // self.cameras_2d.insert(id, camera);
@@ -129,6 +163,16 @@ impl World {
   ) where F: Fn(&mut PathConfig) {
     if self.paths.contains_key(&id) {
       self.paths.entry(id).and_modify(modify);
+    }
+  }
+
+  pub fn access_ellipse<F>(
+    &mut self,
+    id: i32,
+    modify: F
+  ) where F: Fn(&mut EllipseConfig) {
+    if self.ellipses.contains_key(&id) {
+      self.ellipses.entry(id).and_modify(modify);
     }
   }
 }

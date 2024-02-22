@@ -14,6 +14,16 @@ struct Path {
     mat3 transform;
 };
 
+struct Ellipse {
+    float opacity;
+    float radius;
+    float aspect_ratio;
+    float stroke_width;
+    vec4 fill_color;
+    vec4 stroke_color;
+    mat3 transform;
+};
+
 layout(set=0, binding=0) uniform ConfigBuffer {
     // bool clear;
     vec4 clear_color;
@@ -29,7 +39,11 @@ layout(set=1, binding=1) readonly buffer PathBuffer {
     Path path[];
 };
 
-layout(set=1, binding=2, rgba8) writeonly uniform image2D fill;
+layout(set=1, binding=2) readonly buffer EllipseBuffer {
+    Ellipse ellipse[];
+};
+
+layout(set=1, binding=3, rgba8) writeonly uniform image2D fill;
 
 const bool evenodd = true;
 
@@ -45,6 +59,19 @@ void main() {
         1
     );
     view_position.x *= resolution.x / resolution.y;
+
+    for (int i = 0; i < ellipse.length(); i++) {
+        vec3 position = ellipse[i].transform * view_position;
+        position.y *= ellipse[i].aspect_ratio;
+        if (blank && length(position.xy) < ellipse[i].radius) {
+            imageStore(
+                fill,
+                ivec2(gl_GlobalInvocationID.xy),
+                ellipse[i].opacity * ellipse[i].fill_color
+            );
+            blank = false;
+        }
+    }
 
     uint offset = 0;
     for (uint i = 0; i < path.length(); i++) {
