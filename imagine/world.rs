@@ -81,7 +81,9 @@ impl World {
       };
 
       let config = PathConfig {
-        opacity: 1.0,
+        filled: true,
+        evenodd: true,
+        linecap: StrokeLinecap::NoStroke,
         bounds,
         path_segments,
         fill: Py::clone_ref(&path.fill, py),
@@ -175,6 +177,28 @@ impl World {
       self.ellipses.entry(id).and_modify(modify);
     }
   }
+
+  // pub fn add_point(&mut self, path_id: i32, x: f32, y: f32) {
+  //   let mut offset = 0;
+  //   for (id, path) in world.paths.iter_mut() {
+  //     if id == path_id {
+  //       if self.points.len() % 4 == 0 {
+  //         let last_x = self.points[4 * (offset+path.path_segments)];
+  //         let last_y = self.points[4 * (offset+path.path_segments)];
+  //         self.points.push(4 * offset, last_x);
+  //         self.points.push(4 * offset + 1, last_y);
+  //       }
+  //       self.points.insert(4 * offset, x);
+  //       self.points.insert(4 * offset, y);
+  //       self.controls.insert(offset, 0);
+
+  //       *path.path_segments += 1;
+  //       break;
+  //     }
+
+  //     offset += path.path_segments;
+  //   }
+  // }
 }
 
 #[pyclass(name="World")]

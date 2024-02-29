@@ -418,13 +418,21 @@ impl ModelMaterial {
   }
 }
 
+#[derive(Copy, Clone)]
+pub enum StrokeLinecap {
+  NoStroke,
+  RoundCap,
+  ButtCap,
+  SquareCap
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PathUniform {
-  pub opacity: f32,
+  pub flags: u32,
   pub segments: u32,
-  pub linecap: u32,
   pub stroke_width: f32,
+  pub _padding: f32,
   pub fill_color: [f32; 4],
   pub stroke_color: [f32; 4],
   pub bounds: [f32; 4],
@@ -432,7 +440,9 @@ pub struct PathUniform {
 }
 
 pub struct PathConfig {
-  pub opacity: f32,
+  pub filled: bool,
+  pub evenodd: bool,
+  pub linecap: StrokeLinecap,
   pub bounds: [f32; 4],
   pub fill: Py<Color>,
   pub stroke: Py<Color>,
@@ -508,7 +518,7 @@ impl Object3D {
 }
 
 impl PathConfig {
-  pub fn uniform(path: &Self, animate: bool, segments: u32) -> PathUniform {
+  pub fn uniform(path: &Self, animate: bool, segments: usize) -> PathUniform {
     Python::with_gil(|py| {
       let transform = if animate { path.transform } else {
         let s = path.scale.borrow(py);
@@ -530,11 +540,15 @@ impl PathConfig {
 
       let fill = path.fill.borrow(py);
       let stroke = path.stroke.borrow(py);
+
+      let filled = if path.filled { 0b1000 } else { 0 };
+      let fill_rule = if path.evenodd { 0b100 } else { 0 };
+      let linecap = path.linecap as u32;
       PathUniform {
-        opacity: path.opacity,
-        segments,
-        linecap: 0,
+        flags: filled | fill_rule | linecap,
+        segments: segments as u32,
         stroke_width: 1.0,
+        _padding: 0.0,
         bounds: path.bounds,
         fill_color: [
           fill.r as f32 / 255.0,

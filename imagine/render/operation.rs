@@ -65,6 +65,34 @@ pub enum RenderOperation {
 }
 
 impl RenderOperation {
+  pub fn output(&self) -> Vec<String> {
+    match self {
+      RenderOperation::RenderPass { input, output, pipeline, render } => output.clone(),
+      RenderOperation::ComputeDispatch { input, output, pipeline, compute } => output.clone(),
+      RenderOperation::Command { input, output, execute } => output.clone(),
+      RenderOperation::NotFound => Vec::new()
+    }
+  }
+
+  pub fn has_input(&self, input: Vec<String>) -> bool {
+    let op_inputs = match self {
+      RenderOperation::RenderPass { input, output, pipeline, render } => input,
+      RenderOperation::ComputeDispatch { input, output, pipeline, compute } => input,
+      RenderOperation::Command { input, output, execute } => input,
+      RenderOperation::NotFound => return false
+    };
+
+    for op_name in op_inputs {
+      for input_name in input.iter() {
+        if input_name == op_name {
+          return true;
+        }
+      }
+    }
+
+    false
+  }
+
   pub fn run(
     &self,
     context: &RenderContext,
@@ -383,21 +411,21 @@ impl RenderOperation {
     // Prepare storage buffers
     let segment_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
       label: None,
-      size: 4 * context.max_paths * std::mem::size_of::<f32>() as u64,
+      size: context.batch_size_2d as u64,
       usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
       mapped_at_creation: false
     });
 
     let path_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
       label: None,
-      size: context.max_paths * std::mem::size_of::<f32>() as u64,
+      size: context.batch_size_2d as u64,
       usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
       mapped_at_creation: false
     });
 
     let ellipse_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
       label: None,
-      size: context.max_paths * std::mem::size_of::<f32>() as u64,
+      size: context.batch_size_2d as u64,
       usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
       mapped_at_creation: false
     });
@@ -623,21 +651,24 @@ impl RenderOperation {
     // Prepare storage buffers
     let segment_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
       label: None,
-      size: 4 * context.max_paths * std::mem::size_of::<f32>() as u64,
+      size: context.batch_size_2d as u64,
+      // size: 4 * context.max_paths * std::mem::size_of::<f32>() as u64,
       usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
       mapped_at_creation: false
     });
 
     let path_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
       label: None,
-      size: context.max_paths * std::mem::size_of::<f32>() as u64,
+      size: context.batch_size_2d as u64,
+      // size: context.max_paths * std::mem::size_of::<f32>() as u64,
       usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
       mapped_at_creation: false
     });
 
     let ellipse_buffer = context.device.create_buffer(&wgpu::BufferDescriptor {
       label: None,
-      size: context.max_paths * std::mem::size_of::<f32>() as u64,
+      size: context.batch_size_2d as u64,
+      // size: context.max_paths * std::mem::size_of::<f32>() as u64,
       usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
       mapped_at_creation: false
     });

@@ -3,10 +3,8 @@
 layout (local_size_x=16, local_size_y=16) in;
 
 struct Path {
-    // bool evenodd;
-    float opacity;
+    uint flags;
     uint segments;
-    uint linecap;
     float stroke_width;
     vec4 fill_color;
     vec4 stroke_color;
@@ -45,8 +43,6 @@ layout(set=1, binding=2) readonly buffer EllipseBuffer {
 
 layout(set=1, binding=3, rgba8) writeonly uniform image2D fill;
 
-const bool evenodd = true;
-
 bool ccw(vec2 a, vec2 b, vec2 c) {
     return (b.x - a.x) * (c.y - a.y) > (b.y - a.y) * (c.x - a.x);
 }
@@ -75,6 +71,10 @@ void main() {
 
     uint offset = 0;
     for (uint i = 0; i < path.length(); i++) {
+        if (path[i].flags < 8) {
+            offset += path[i].segments;
+            continue;
+        }
         vec3 position = path[i].transform * view_position;
 
         // Find intersecting segments if within the bounds of the path
@@ -95,13 +95,13 @@ void main() {
             }
 
             // Fill shape evenodd or nonzero based on fill rule
-            if (evenodd && right % 2 != 0 || !evenodd && left > 0 && right > 0) {
-            // if (evenodd && right % 2 != 0 || !evenodd && left != right) {
+            if ((path[i].flags / 4) % 2 != 0 && right % 2 != 0
+             || (path[i].flags / 4) % 2 == 0 && left > 0 && right > 0) {
                 blank = false;
                 imageStore(
                     fill,
                     ivec2(gl_GlobalInvocationID.xy),
-                    path[i].opacity * path[i].fill_color
+                    path[i].fill_color
                 );
             }
         }
@@ -109,5 +109,5 @@ void main() {
         offset += path[i].segments;
     }
 
-    if (blank) imageStore(fill, ivec2(gl_GlobalInvocationID.xy), clear_color);
+    // if (blank) imageStore(fill, ivec2(gl_GlobalInvocationID.xy), clear_color);
 }

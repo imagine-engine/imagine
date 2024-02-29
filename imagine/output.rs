@@ -62,6 +62,12 @@ impl Output {
   }
 }
 
+// impl Drop for Output {
+//   fn drop(&mut self) {
+//     self.video.free();
+//   }
+// }
+
 #[pyclass(name="Output")]
 pub struct PyOutput;
 
@@ -81,6 +87,16 @@ impl PyOutput {
   fn get_recording_status(&self) -> PyResult<bool> {
     Ok(IMAGINE.lock().unwrap().output.video.writing)
   }
+
+  // #[setter(width)]
+  // fn set_width(&self, new_width: f32) -> PyResult<u32> {
+  //   IMAGINE.lock().unwrap().output.render_graph.context.size.width = new_width;
+  // }
+
+  // #[setter(height)]
+  // fn set_height(&self, new_height: f32) -> PyResult<u32> {
+  //   IMAGINE.lock().unwrap().output.render_graph.context.size.height = new_height;
+  // }
 }
 
 #[pyfunction]
@@ -109,13 +125,4 @@ pub fn record(
 #[pyfunction]
 pub fn stop() {
   IMAGINE.lock().unwrap().output.stop();
-}
-
-#[pyfunction]
-pub fn run_loop(py: Python<'_>, func: Py<PyAny>) {
-// #[pyo3(signature=(func, duration=10.0))]
-// pub fn run_loop(py: Python<'_>, func: Py<PyAny>, duration: f32) {
-  IMAGINE.lock().unwrap().keyframes(10.0, || {
-    let _ = func.call0(py);
-  });
 }

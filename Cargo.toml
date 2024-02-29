@@ -7,6 +7,10 @@ edition = "2018"
 path = "imagine/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
+# [[bench]]
+# name = "all"
+# harness = false
+
 [dependencies]
 bytemuck = { version = "1.13.1", features = [ "derive" ] }
 ffmpeg-sys-next = "6.0.1"
@@ -26,3 +30,6 @@ svgtypes = "0.14.0"
 version = "0.24"
 default-features = false
 features = ["png", "jpeg"]
+
+# [dev-dependencies]
+# criterion = { version = "0.4", features = ["html_reports"] }

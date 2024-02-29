@@ -1,12 +1,15 @@
 #version 450
 
+#define NO_STROKE  0
+#define ROUND_CAP  1
+#define BUTT_CAP   2
+#define SQUARE_CAP 3
+
 layout (local_size_x=16, local_size_y=16) in;
 
 struct Path {
-    // bool evenodd;
-    float opacity;
+    int flags;
     uint segments;
-    uint linecap;
     float stroke_width;
     vec4 fill_color;
     vec4 stroke_color;
@@ -83,19 +86,22 @@ void main() {
 
     uint offset = 0;
     for (uint i = 0; i < path.length(); i++) {
+        if(path[i].flags % 4 == NO_STROKE) {
+            offset += path[i].segments;
+            continue;
+        }
+
         vec3 position = path[i].transform * view_position;
         for (uint j = offset; j < offset + 4 * path[i].segments; j += 4) {
             vec2 p1 = vec2(segments[j], segments[j+1]);
             vec2 p2 = vec2(segments[j+2], segments[j+3]);
-            if (path[i].linecap == 0)
-                continue;
 
-            if (path[i].linecap == 1 && roundcap(position.xy, path[i].stroke_width, p1, p2) ||
-                path[i].linecap == 2 && buttcap(position.xy, path[i].stroke_width, p1, p2)) {
+            if (path[i].flags % 4 == ROUND_CAP && roundcap(position.xy, path[i].stroke_width, p1, p2) ||
+                path[i].flags % 4 == BUTT_CAP && buttcap(position.xy, path[i].stroke_width, p1, p2)) {
                 imageStore(
                     stroke,
                     ivec2(gl_GlobalInvocationID.xy),
-                    path[i].opacity * path[i].stroke_color
+                    path[i].stroke_color
                 );
             }
         }

@@ -30,8 +30,7 @@ pub use operation::RenderOperation;
 use crate::world::World;
 
 pub async fn render(world: &World, graph: &mut RenderGraph) -> Vec<u8> {
-  graph.update(world);
-  graph.run();
+  graph.run(world);
 
   match graph.resources.get("framebuffer") {
     Some(RenderResource::Buffer(buffer)) => {
@@ -55,5 +54,4 @@ pub async fn render(world: &World, graph: &mut RenderGraph) -> Vec<u8> {
     },
     _ => vec![255; 4 * graph.context.frame_size()]
   }
-
 }

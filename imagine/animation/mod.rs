@@ -16,6 +16,8 @@
   limitations under the License.
 *******************************************************************************/
 
+pub mod keyframe;
+
 use pyo3::PyRefMut;
 use crate::objects::Path;
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};

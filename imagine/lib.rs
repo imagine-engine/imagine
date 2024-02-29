@@ -41,13 +41,14 @@ use camera::Camera;
 use world::PyWorld;
 use pyo3::wrap_pymodule;
 use objects::basic_shapes::*;
+use crate::animation::keyframe::interpolate;
 
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::wrap_pyfunction;
 
 #[pymodule]
-#[pyo3(name = "math")]
+#[pyo3(name="math")]
 fn math_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_class::<Vector>()?;
 
@@ -55,7 +56,7 @@ fn math_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 }
 
 #[pymodule]
-#[pyo3(name = "shaders")]
+#[pyo3(name="shaders")]
 fn shader_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(vertex_shader, m)?)?;
   m.add_function(wrap_pyfunction!(compute_shader, m)?)?;
@@ -65,7 +66,7 @@ fn shader_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 }
 
 #[pymodule]
-#[pyo3(name = "objects")]
+#[pyo3(name="objects")]
 fn object_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(square, m)?)?;
   m.add_function(wrap_pyfunction!(triangle, m)?)?;
@@ -81,11 +82,19 @@ fn object_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 }
 
 #[pymodule]
-#[pyo3(name = "loaders")]
+#[pyo3(name="loaders")]
 fn loader_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(load_mesh, m)?)?;
   // m.add_function(wrap_pyfunction!(load_svg, m)?)?;
   // m.add_function(wrap_pyfunction!(load_scene, m)?)?;
+
+  Ok(())
+}
+
+#[pymodule]
+#[pyo3(name="animation")]
+fn animation_module(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+  m.add_function(wrap_pyfunction!(interpolate, m)?)?;
 
   Ok(())
 }
@@ -96,13 +105,18 @@ fn imagine(_py: Python, m: &PyModule) -> PyResult<()> {
   m.add_wrapped(wrap_pymodule!(shader_module))?;
   m.add_wrapped(wrap_pymodule!(loader_module))?;
   m.add_wrapped(wrap_pymodule!(object_module))?;
+  m.add_wrapped(wrap_pymodule!(animation_module))?;
 
-  let sys = PyModule::import(_py, "sys")?;
-  let sys_modules: &PyDict = sys.getattr("modules")?.downcast()?;
-  sys_modules.set_item("imagine.math", m.getattr("math")?)?;
-  sys_modules.set_item("imagine.shader", m.getattr("shaders")?)?;
-  sys_modules.set_item("imagine.loaders", m.getattr("loaders")?)?;
-  sys_modules.set_item("imagine.objects", m.getattr("objects")?)?;
+  let sys_module = PyModule::import(_py, "sys")?;
+  let sys: &PyDict = sys_module.getattr("modules")?.downcast()?;
+  sys.set_item("imagine.math", m.getattr("math")?)?;
+  sys.set_item("imagine.shader", m.getattr("shaders")?)?;
+  sys.set_item("imagine.loaders", m.getattr("loaders")?)?;
+  sys.set_item("imagine.objects", m.getattr("objects")?)?;
+  sys.set_item("imagine.animation", m.getattr("animation")?)?;
+
+  // sys.set_item("world", Py::new(_py, PyWorld {})?)?;
+  // sys.set_item("output", Py::new(_py, PyOutput {})?)?;
 
   let world = Py::new(_py, PyWorld {}).unwrap();
   m.add("world", world)?;
@@ -110,10 +124,12 @@ fn imagine(_py: Python, m: &PyModule) -> PyResult<()> {
   let output = Py::new(_py, PyOutput {}).unwrap();
   m.add("output", output)?;
 
+  // sys.set_item("world", m.getattr("world")?)?;
+  // sys.set_item("output", m.getattr("output")?)?;
+
   m.add_function(wrap_pyfunction!(wait, m)?)?;
   m.add_function(wrap_pyfunction!(record, m)?)?;
   m.add_function(wrap_pyfunction!(stop, m)?)?;
-  m.add_function(wrap_pyfunction!(run_loop, m)?)?;
 
   m.add_class::<Color>()?;
 

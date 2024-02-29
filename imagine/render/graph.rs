@@ -17,10 +17,12 @@
 *******************************************************************************/
 
 use pyo3::Python;
+use std::mem::size_of;
 use nalgebra::Vector2;
 use wgpu::util::DeviceExt;
 use std::collections::HashMap;
 use crate::world::{World, Domain};
+use crate::render::RenderOperation::*;
 use crate::render::{RenderContext, RenderResource, RenderOperation};
 use crate::render::primitives::{
   Model,
@@ -155,7 +157,7 @@ impl RenderGraph {
   //   bundle
   // }
 
-  pub fn update(&mut self, world: &World) {
+  pub fn run(&mut self, world: &World) {
     let offset = self.context.device.limits().min_uniform_buffer_offset_alignment;
 
     match world.domain {
@@ -222,102 +224,143 @@ impl RenderGraph {
           );
         }
 
-        if let Some(RenderResource::Layer(
-          segment_buffer,
-          path_buffer,
-          ellipse_buffer,
-          _
-        )) = self.resources.get_mut("world_2d") {
-          let mut idx = 0;
-          let mut offset = 0;
-          let mut segment_count = 0;
-          let mut segments: Vec<f32> = Vec::new();
-          let mut paths: Vec<PathUniform> = Vec::new();
-          let mut ellipses: Vec<EllipseUniform> = Vec::new();
+        let mut idx = 0;
+        let mut size = 0;
+        let mut path_offset = 0;
+        let mut segments: Vec<f32> = Vec::new();
+        let mut paths: Vec<PathUniform> = Vec::new();
+        let mut ellipses: Vec<EllipseUniform> = Vec::new();
 
-          for ellipse in world.ellipses.values() {
-            ellipses.push(EllipseConfig::uniform(ellipse, world.animating));
+        for ellipse in world.ellipses.values() {
+          size += size_of::<EllipseUniform>();
+          ellipses.push(EllipseConfig::uniform(ellipse, world.animating));
+          if size + size_of::<EllipseUniform>() > self.context.batch_size_2d {
+            size = 0;
+            self.draw_layer(&segments, &paths, &ellipses);
+            ellipses.clear();
           }
+        }
 
-          for path in world.paths.values() {
-            for i in offset..path.path_segments {
-              let controls = world.controls[offset+i];
-              match controls {
-                0 => {
-                  segments.push(world.points[idx]);
-                  segments.push(world.points[idx+1]);
-                  segments.push(world.points[idx+2]);
-                  segments.push(world.points[idx+3]);
-                  segment_count += 1;
-                },
-                1 => {
-                  let p1 = Vector2::new(world.points[idx], world.points[idx+1]);
-                  let p2 = Vector2::new(world.points[idx+4], world.points[idx+5]);
-                  let c1 = Vector2::new(world.points[idx+2], world.points[idx+3]);
-                  segments.push(p1.x);
-                  segments.push(p1.y);
+        for path in world.paths.values() {
+          let mut segment_count = 0;
+          for i in path_offset..path.path_segments {
+            let controls = world.controls[path_offset+i];
+            match controls {
+              0 => {
+                segments.push(world.points[idx]);
+                segments.push(world.points[idx+1]);
+                segments.push(world.points[idx+2]);
+                segments.push(world.points[idx+3]);
+                segment_count += 1;
+              },
+              1 => {
+                let p1 = Vector2::new(world.points[idx], world.points[idx+1]);
+                let p2 = Vector2::new(world.points[idx+4], world.points[idx+5]);
+                let c1 = Vector2::new(world.points[idx+2], world.points[idx+3]);
+                segments.push(p1.x);
+                segments.push(p1.y);
 
-                  for i in 1..10 {
-                    let t = i as f32 / 10.0;
-                    let pt = (1.0 - t) * (1.0 - t) * p1 + 2.0 * (1.0 - t) * t * c1 + t * t * p2;
-                    segments.push(pt.x);
-                    segments.push(pt.y);
-                    segments.push(pt.x);
-                    segments.push(pt.y);
-                  }
+                for i in 1..10 {
+                  let t = i as f32 / 10.0;
+                  let pt = (1.0 - t) * (1.0 - t) * p1 + 2.0 * (1.0 - t) * t * c1 + t * t * p2;
+                  segments.push(pt.x);
+                  segments.push(pt.y);
+                  segments.push(pt.x);
+                  segments.push(pt.y);
+                }
 
-                  segments.push(p2.x);
-                  segments.push(p2.y);
-                  segment_count += 10;
-                },
-                2 => {
-                  let p1 = Vector2::new(world.points[idx], world.points[idx+1]);
-                  let p2 = Vector2::new(world.points[idx+6], world.points[idx+7]);
-                  let c1 = Vector2::new(world.points[idx+2], world.points[idx+3]);
-                  let c2 = Vector2::new(world.points[idx+4], world.points[idx+5]);
-                  segments.push(p1.x);
-                  segments.push(p1.y);
+                segments.push(p2.x);
+                segments.push(p2.y);
+                segment_count += 10;
+              },
+              2 => {
+                let p1 = Vector2::new(world.points[idx], world.points[idx+1]);
+                let p2 = Vector2::new(world.points[idx+6], world.points[idx+7]);
+                let c1 = Vector2::new(world.points[idx+2], world.points[idx+3]);
+                let c2 = Vector2::new(world.points[idx+4], world.points[idx+5]);
+                segments.push(p1.x);
+                segments.push(p1.y);
 
-                  for i in 1..100 {
-                    let t = i as f32 / 100.0;
-                    let m = (1.0 - t) * (1.0 - t) * p1 + 2.0 * (1.0 - t) * t * p2 + t * t * c1;
-                    segments.push(m.x);
-                    segments.push(m.y);
-                    segments.push(m.x);
-                    segments.push(m.y);
-                  }
+                for i in 1..100 {
+                  let t = i as f32 / 100.0;
+                  let m = (1.0 - t) * (1.0 - t) * p1 + 2.0 * (1.0 - t) * t * p2 + t * t * c1;
+                  segments.push(m.x);
+                  segments.push(m.y);
+                  segments.push(m.x);
+                  segments.push(m.y);
+                }
 
-                  segments.push(p2.x);
-                  segments.push(p2.y);
-                  segment_count += 100;
-                },
-                _ => ()
-              }
-
-              idx += (4 + 2 * controls) as usize;
+                segments.push(p2.x);
+                segments.push(p2.y);
+                segment_count += 100;
+              },
+              _ => ()
             }
 
-            paths.push(PathConfig::uniform(path, world.animating, segment_count));
-            offset += path.path_segments;
+            idx += (4 + 2 * controls) as usize;
           }
 
-          self.context.queue.write_buffer(
-            &segment_buffer, 0, bytemuck::cast_slice(&segments)
-          );
+          let path_size = size_of::<PathUniform>() + 4 * segment_count * std::mem::size_of::<f32>();
+          size += path_size;
 
-          self.context.queue.write_buffer(
-            &path_buffer, 0, bytemuck::cast_slice(&paths)
-          );
+          if size > self.context.batch_size_2d {
+            paths.clear();
+            ellipses.clear();
+            segments.drain(0..segments.len() - 4 * segment_count);
+          }
 
-          self.context.queue.write_buffer(
-            &ellipse_buffer, 0, bytemuck::cast_slice(&ellipses)
-          );
+          path_offset += path.path_segments;
+          paths.push(PathConfig::uniform(path, world.animating, segment_count));
+        }
+
+        if size > 0 {
+          self.draw_layer(&segments, &paths, &ellipses);
         }
       }
     }
+
+    // for level in self.stages.iter() {
+    //   let mut operations = Vec::new();
+    //   for id in level.iter() {
+    //     operations.push(self.op(id).run(
+    //       &self.context,
+    //       &self.resources
+    //     ));
+    //   }
+
+    //   self.context.queue.submit(operations);
+    // }
   }
 
-  pub fn run(&self) {
+  pub fn draw_layer(
+    &mut self,
+    segments: &Vec<f32>,
+    paths: &Vec<PathUniform>,
+    ellipses: &Vec<EllipseUniform>
+  ) {
+    if let Some(RenderResource::Layer(
+      segment_buffer,
+      path_buffer,
+      ellipse_buffer,
+      _
+    )) = self.resources.get_mut("world_2d") {
+      self.context.queue.write_buffer(
+        &segment_buffer, 0, bytemuck::cast_slice(&segments)
+      );
+
+      self.context.queue.write_buffer(
+        &path_buffer, 0, bytemuck::cast_slice(&paths)
+      );
+
+      self.context.queue.write_buffer(
+        &ellipse_buffer, 0, bytemuck::cast_slice(&ellipses)
+      );
+    }
+
+    self.update("world_2d");
+  }
+
+  pub fn update(&mut self, resource: &str) {
     for level in self.stages.iter() {
       let mut operations = Vec::new();
       for id in level.iter() {
@@ -329,5 +372,25 @@ impl RenderGraph {
 
       self.context.queue.submit(operations);
     }
+
+    // let mut updated: Vec<String> = vec![resource.to_string()];
+    // for level in self.stages.iter() {
+    //   let mut operations = Vec::new();
+    //   let mut next: Vec<String> = Vec::new();
+    //   for id in level.iter() {
+    //     let op = self.op(id);
+    //     if op.has_input(updated.clone()) {
+    //       operations.push(op.run(
+    //         &self.context,
+    //         &self.resources
+    //       ));
+
+    //       next.extend(op.output());
+    //     }
+    //   }
+
+    //   updated = next;
+    //   self.context.queue.submit(operations);
+    // }
   }
 }

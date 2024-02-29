@@ -33,7 +33,8 @@ pub struct RenderContext {
   pub size: wgpu::Extent3d,
   pub max_vertices: u64,
   pub max_models: u64,
-  pub max_paths: u64,
+  // pub max_paths: u64,
+  pub batch_size_2d: usize,
   // pub pbr_layout: wgpu::BindGroupLayout,
   pub phong_layout: wgpu::BindGroupLayout,
   pub m2_layout: wgpu::BindGroupLayout
@@ -73,8 +74,10 @@ impl RenderContext {
       device,
       queue,
       max_vertices: 1000,
-      max_models: 10000,
-      max_paths: 10000,
+      max_models: 10_000,
+      // batch_size_2d: 1_000_000,
+      batch_size_2d: 10_000,
+      // max_paths: 10000,
       size: wgpu::Extent3d {
         width: 1920,
         height: 1080,

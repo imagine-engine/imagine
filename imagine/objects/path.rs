@@ -137,6 +137,10 @@ impl Path {
       }
     ]);
   }
+
+  // pub fn add_point(&mut self, x: f32, y: f32) {
+  //   IMAGINE.lock().unwrap().world.add_point(self.id, x, y);
+  // }
 }
 
 #[pymethods]

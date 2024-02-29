@@ -27,6 +27,7 @@ use crate::render::RenderGraph;
 use crate::render::primitives::*;
 use crate::world::{World, Domain};
 use std::collections::{HashMap, BTreeMap};
+use crate::animation::keyframe::KeyframeIterator;
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
 
 lazy_static! {
@@ -115,14 +116,26 @@ impl App {
     }
   }
 
-  pub fn keyframes<F>(&mut self, duration: f32, f: F) where F: Fn() {
+  pub fn keyframes(&self, duration: f32) -> KeyframeIterator {
     if let Some(fps) = self.output.video.get_fps() {
-      let delta = 1.0 / fps as f32;
-      for _ in 0..(duration * fps as f32) as usize {
-        f();
-        self.world.age += delta;
-        self.output.write(&mut self.world, 1);
-      }
+      return KeyframeIterator {
+        i: 0,
+        delta: 1.0 / fps as f32,
+        frames: (duration * fps as f32) as usize
+      };
+    }
+
+    KeyframeIterator {
+      i: 0,
+      delta: 0.0,
+      frames: 0
+    }
+  }
+
+  pub fn next_frame(&mut self) {
+    if let Some(fps) = self.output.video.get_fps() {
+      self.world.age += 1.0 / fps as f32;
+      self.output.write(&mut self.world, 1);
     }
   }
 
