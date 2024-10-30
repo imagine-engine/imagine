@@ -281,8 +281,8 @@ impl RenderGraph {
                 segments.push(p1.x);
                 segments.push(p1.y);
 
-                for i in 1..100 {
-                  let t = i as f32 / 100.0;
+                for i in 1..10 {
+                  let t = i as f32 / 10.0;
                   let m = (1.0 - t) * (1.0 - t) * p1 + 2.0 * (1.0 - t) * t * p2 + t * t * c1;
                   segments.push(m.x);
                   segments.push(m.y);
@@ -292,7 +292,7 @@ impl RenderGraph {
 
                 segments.push(p2.x);
                 segments.push(p2.y);
-                segment_count += 100;
+                segment_count += 10;
               },
               _ => ()
             }

@@ -48,7 +48,8 @@ pub struct World {
   pub paths: BTreeMap<i32, PathConfig>,
   pub points: Vec<f32>,
   pub controls: Vec<u8>,
-  pub animating: bool
+  pub animating: bool,
+  pub clear: bool
 }
 
 impl World {

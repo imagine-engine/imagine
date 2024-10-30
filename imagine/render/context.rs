@@ -75,8 +75,8 @@ impl RenderContext {
       queue,
       max_vertices: 1000,
       max_models: 10_000,
-      // batch_size_2d: 1_000_000,
-      batch_size_2d: 10_000,
+      batch_size_2d: 1_000_000,
+      // batch_size_2d: 10_000,
       // max_paths: 10000,
       size: wgpu::Extent3d {
         width: 1920,

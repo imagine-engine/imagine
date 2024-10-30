@@ -643,7 +643,7 @@ pub struct Camera2D {
   pub rotation: f32,
   pub scale: Vector2<f32>,
   pub position: Vector2<f32>,
-  pub view: Matrix3<f32>,
+  pub view: Matrix3<f32>
 }
 
 impl Camera3D {

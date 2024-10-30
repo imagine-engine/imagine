@@ -1,7 +1,7 @@
 target
 *.so
 *.mp4
-imagine_engine.egg-info/
+imagine.egg-info/
 Cargo.lock
 .pytest_cache
 __pycache__/
