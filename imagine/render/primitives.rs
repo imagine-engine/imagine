@@ -1,21 +1,3 @@
-/*******************************************************************************
-  primitives.rs
-********************************************************************************
-  Copyright 2024 Menelik Eyasu
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*******************************************************************************/
-
 use pyo3::Py;
 use crate::Color;
 use crate::Python;
@@ -23,7 +5,6 @@ use crate::math::Vector;
 use wgpu::util::DeviceExt;
 use std::sync::{Arc, Mutex};
 use crate::render::RenderContext;
-use crate::animation::{Animation, AnimationUpdate};
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
 
 pub struct Model {
@@ -160,8 +141,7 @@ impl Uniform3D {
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct GaussianUniform {
-}
+pub struct GaussianUniform {}
 
 impl GaussianUniform {
   pub fn default() -> Self {
@@ -643,7 +623,7 @@ pub struct Camera2D {
   pub rotation: f32,
   pub scale: Vector2<f32>,
   pub position: Vector2<f32>,
-  pub view: Matrix3<f32>
+  pub view: Matrix3<f32>,
 }
 
 impl Camera3D {

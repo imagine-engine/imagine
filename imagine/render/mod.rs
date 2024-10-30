@@ -20,12 +20,15 @@ mod graph;
 mod context;
 mod resource;
 mod operation;
+mod components;
 pub mod primitives;
 
 pub use graph::RenderGraph;
 pub use context::RenderContext;
 pub use resource::RenderResource;
 pub use operation::RenderOperation;
+
+pub use components::*;
 
 use crate::world::World;
 

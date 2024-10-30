@@ -1,21 +1,3 @@
-/*******************************************************************************
-  video.rs
-********************************************************************************
-  Copyright 2024 Menelik Eyasu
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*******************************************************************************/
-
 extern crate ffmpeg_sys_next as ffmpeg;
 
 use ffmpeg::*;
@@ -23,15 +5,13 @@ use core::ffi::CStr;
 use std::ffi::CString;
 use core::ffi::c_void;
 
-// use std::path::Path;
-
 #[inline(always)]
 #[allow(non_snake_case)]
 pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
   -e
 }
 
-pub struct Video {
+pub struct VideoContext {
   pub writing: bool,
 
   pts: i64,
@@ -48,9 +28,9 @@ pub struct Video {
   audio_buffer: *mut AVFrame
 }
 
-unsafe impl Send for Video {}
+unsafe impl Send for VideoContext {}
 
-impl Video {
+impl VideoContext {
   pub fn new() -> Self {
     // for codec in Self::get_available_codecs().iter() {
     //   info!(codec);

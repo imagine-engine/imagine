@@ -1,24 +1,7 @@
-/*******************************************************************************
-  color.rs
-********************************************************************************
-  Copyright 2024 Menelik Eyasu
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*******************************************************************************/
-
 use pyo3::prelude::*;
 
 #[pyclass]
+#[derive(Clone)]
 pub struct Color {
   #[pyo3(get, set)]
   pub r: u8,
@@ -31,11 +14,11 @@ pub struct Color {
 #[pymethods]
 impl Color {
   #[classattr]
-  const BLACK: Color = Color { r: 0, g: 0, b: 0 };
+  pub const BLACK: Color = Color { r: 0, g: 0, b: 0 };
   #[classattr]
-  const WHITE: Color = Color { r: 255, g: 255, b: 255 };
+  pub const WHITE: Color = Color { r: 255, g: 255, b: 255 };
   #[classattr]
-  const BLUE: Color = Color { r: 33, g: 150, b: 243 };
+  pub const BLUE: Color = Color { r: 33, g: 150, b: 243 };
 
   #[new]
   fn new(hex: String) -> PyResult<Self> {

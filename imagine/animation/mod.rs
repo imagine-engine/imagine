@@ -1,249 +1,237 @@
-/*******************************************************************************
-  animation.rs
-********************************************************************************
-  Copyright 2024 Menelik Eyasu
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*******************************************************************************/
-
+mod transform2d;
+mod transform3d;
 pub mod keyframe;
 
-use pyo3::PyRefMut;
-use crate::objects::Path;
-use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
+pub use transform2d::*;
+pub use transform3d::*;
 
-pub enum AnimationUpdate {
-  PathTransform2D(
-    i32,
-    Option<Vector2<f32>>,
-    Option<Vector2<f32>>,
-    Option<f32>
-  ),
-  EllipseTransform2D(
-    i32,
-    Option<Vector2<f32>>,
-    Option<Vector2<f32>>,
-    Option<f32>
-  ),
-  Transform3D(i32, Vector3<f32>, Vector3<f32>, Vector3<f32>),
-  Camera3DTransform(Vector3<f32>, Vector3<f32>, Vector3<f32>),
-  Camera2DTransform(Vector2<f32>, Vector2<f32>, f32),
-  Perspective(f32, f32, f32)
-}
+use crate::world::World;
 
-pub enum Interpolation {
-  Linear,
-  EaseIn,
-  EaseOut,
-  EaseInOut
-}
+// pub enum AnimationUpdate {
+//   PathTransform2D(
+//     Option<Vector2<f32>>,
+//     Option<Vector2<f32>>,
+//     Option<f32>
+//   ),
+//   EllipseTransform2D(
+//     Option<Vector2<f32>>,
+//     Option<Vector2<f32>>,
+//     Option<f32>
+//   ),
+//   Transform3D(Vector3<f32>, Vector3<f32>, Vector3<f32>),
+//   Camera3DTransform(Vector3<f32>, Vector3<f32>, Vector3<f32>),
+//   Camera2DTransform(Vector2<f32>, Vector2<f32>, f32),
+//   Perspective(f32, f32, f32)
+// }
 
-impl Interpolation {
-  fn apply(&self, t: f32) -> f32 {
-    match self {
-      Interpolation::Linear => t,
-      Interpolation::EaseIn => t*t*t,
-      Interpolation::EaseOut => 1.0 - (1.0-t).powi(3),
-      Interpolation::EaseInOut => if t < 0.5 {
-        4.0 * t * t * t
-      } else {
-        1.0 - (2.0 - 2.0*t).powi(3) / 2.0
-      },
-      // Interpolation::EaseOutBounce => if t < 1 / d1 {
-      //   7.5625 * t * t
-      // } else if x < 2 / 2.75 {
-      //   7.5625 * (t - 1.5 / 2.75) * t + 0.75
-      // } else if t < 2.5 / 2.75 {
-      //   7.5625 * (t - 2.25 / 2.75) * t + 0.9375
-      // } else {
-      //   7.5625 * (t - 2.625 / 2.75) * t + 0.984375
-      // }
-    }
-  }
+// pub enum Interpolation {
+//   Linear,
+//   EaseIn,
+//   EaseOut,
+//   EaseInOut
+// }
 
-  pub fn transform3d(
-    &self,
-    t: f32,
-    initial_scale: &Vector3<f32>,
-    initial_pos: &Vector3<f32>,
-    initial_rot: &Vector3<f32>,
-    final_scale: &Vector3<f32>,
-    final_pos: &Vector3<f32>,
-    final_rot: &Vector3<f32>
-  ) -> Matrix4<f32> {
-    let ease = self.apply(t);
+// impl Interpolation {
+//   fn apply(&self, t: f32) -> f32 {
+//     match self {
+//       Interpolation::Linear => t,
+//       Interpolation::EaseIn => t*t*t,
+//       Interpolation::EaseOut => 1.0 - (1.0-t).powi(3),
+//       Interpolation::EaseInOut => if t < 0.5 {
+//         4.0 * t * t * t
+//       } else {
+//         1.0 - (2.0 - 2.0*t).powi(3) / 2.0
+//       },
+//       // Interpolation::EaseOutBounce => if t < 1 / d1 {
+//       //   7.5625 * t * t
+//       // } else if x < 2 / 2.75 {
+//       //   7.5625 * (t - 1.5 / 2.75) * t + 0.75
+//       // } else if t < 2.5 / 2.75 {
+//       //   7.5625 * (t - 2.25 / 2.75) * t + 0.9375
+//       // } else {
+//       //   7.5625 * (t - 2.625 / 2.75) * t + 0.984375
+//       // }
+//     }
+//   }
 
-    let scale = Matrix4::new_nonuniform_scaling(
-      &initial_scale.lerp(final_scale, ease)
-    );
-    let position = Matrix4::new_translation(
-      &initial_pos.lerp(final_pos, ease)
-    );
-    let rotation = Matrix4::from_euler_angles(
-      initial_rot.x + ease * (final_rot.x - initial_rot.x),
-      initial_rot.y + ease * (final_rot.y - initial_rot.y),
-      initial_rot.z + ease * (final_rot.z - initial_rot.z)
-    );
+//   pub fn transform3d(
+//     &self,
+//     t: f32,
+//     initial_scale: &Vector3<f32>,
+//     initial_pos: &Vector3<f32>,
+//     initial_rot: &Vector3<f32>,
+//     final_scale: &Vector3<f32>,
+//     final_pos: &Vector3<f32>,
+//     final_rot: &Vector3<f32>
+//   ) -> Matrix4<f32> {
+//     let ease = self.apply(t);
 
-    scale * position * rotation
-  }
+//     let scale = Matrix4::new_nonuniform_scaling(
+//       &initial_scale.lerp(final_scale, ease)
+//     );
+//     let position = Matrix4::new_translation(
+//       &initial_pos.lerp(final_pos, ease)
+//     );
+//     let rotation = Matrix4::from_euler_angles(
+//       initial_rot.x + ease * (final_rot.x - initial_rot.x),
+//       initial_rot.y + ease * (final_rot.y - initial_rot.y),
+//       initial_rot.z + ease * (final_rot.z - initial_rot.z)
+//     );
 
-  pub fn transform2d(
-    &self,
-    t: f32,
-    initial_scale: &Vector2<f32>,
-    initial_pos: &Vector2<f32>,
-    initial_rot: f32,
-    final_scale: Option<&Vector2<f32>>,
-    final_pos: Option<&Vector2<f32>>,
-    final_rot: Option<f32>
-  ) -> Matrix3<f32> {
-    let ease = self.apply(t);
+//     scale * position * rotation
+//   }
 
-    let scale_invert = if let Some(new_scale) = final_scale {
-      initial_scale.lerp(new_scale, ease)
-    } else {
-      *initial_scale
-    };
-    let scale = Matrix3::new_nonuniform_scaling(&Vector2::<f32>::new(
-      1.0 / scale_invert.x,
-      1.0 / scale_invert.y
-    ));
+//   pub fn transform2d(
+//     &self,
+//     t: f32,
+//     initial_scale: &Vector2<f32>,
+//     initial_pos: &Vector2<f32>,
+//     initial_rot: f32,
+//     final_scale: Option<&Vector2<f32>>,
+//     final_pos: Option<&Vector2<f32>>,
+//     final_rot: Option<f32>
+//   ) -> Matrix3<f32> {
+//     let ease = self.apply(t);
 
-    let angle = if let Some(new_rot) = final_rot {
-      initial_rot + ease * (new_rot - initial_rot)
-    } else {
-      initial_rot
-    };
-    let rotation = Matrix3::new_rotation(angle);
+//     let scale_invert = if let Some(new_scale) = final_scale {
+//       initial_scale.lerp(new_scale, ease)
+//     } else {
+//       *initial_scale
+//     };
+//     let scale = Matrix3::new_nonuniform_scaling(&Vector2::<f32>::new(
+//       1.0 / scale_invert.x,
+//       1.0 / scale_invert.y
+//     ));
 
-    let pos_invert = if let Some(new_pos) = final_pos {
-      initial_pos.lerp(new_pos, ease)
-    } else {
-      *initial_pos
-    };
-    let sin_a = angle.sin();
-    let cos_a = angle.cos();
-    let position = Matrix3::new_translation(&Vector2::<f32>::new(
-      pos_invert.y*sin_a - pos_invert.x*cos_a,
-      -pos_invert.x*sin_a - pos_invert.y*cos_a,
-    ));
+//     let angle = if let Some(new_rot) = final_rot {
+//       initial_rot + ease * (new_rot - initial_rot)
+//     } else {
+//       initial_rot
+//     };
+//     let rotation = Matrix3::new_rotation(angle);
 
-    scale * position * rotation
-  }
+//     let pos_invert = if let Some(new_pos) = final_pos {
+//       initial_pos.lerp(new_pos, ease)
+//     } else {
+//       *initial_pos
+//     };
+//     let sin_a = angle.sin();
+//     let cos_a = angle.cos();
+//     let position = Matrix3::new_translation(&Vector2::<f32>::new(
+//       pos_invert.y*sin_a - pos_invert.x*cos_a,
+//       -pos_invert.x*sin_a - pos_invert.y*cos_a,
+//     ));
 
-  pub fn camera_transform3d(
-    &self,
-    t: f32,
-    initial_scale: &Vector3<f32>,
-    initial_eye: &Vector3<f32>,
-    initial_rot: &Vector3<f32>,
-    final_scale: &Vector3<f32>,
-    final_eye: &Vector3<f32>,
-    final_rot: &Vector3<f32>
-  ) -> Matrix4<f32> {
-    let ease = self.apply(t);
+//     scale * position * rotation
+//   }
 
-    let eye = -1.0 * initial_eye.lerp(final_eye, ease);
-    let position = Matrix4::new_translation(&eye);
-    let rotation = Matrix4::from_euler_angles(
-      -initial_rot.x - ease * (final_rot.x - initial_rot.x),
-      -initial_rot.y - ease * (final_rot.y - initial_rot.y),
-      -initial_rot.z - ease * (final_rot.z - initial_rot.z)
-    );
-    let scale = Matrix4::new_nonuniform_scaling(
-      &initial_scale.lerp(final_scale, ease)
-    );
+//   pub fn camera_transform3d(
+//     &self,
+//     t: f32,
+//     initial_scale: &Vector3<f32>,
+//     initial_eye: &Vector3<f32>,
+//     initial_rot: &Vector3<f32>,
+//     final_scale: &Vector3<f32>,
+//     final_eye: &Vector3<f32>,
+//     final_rot: &Vector3<f32>
+//   ) -> Matrix4<f32> {
+//     let ease = self.apply(t);
 
-    scale * position * rotation
-  }
+//     let eye = -1.0 * initial_eye.lerp(final_eye, ease);
+//     let position = Matrix4::new_translation(&eye);
+//     let rotation = Matrix4::from_euler_angles(
+//       -initial_rot.x - ease * (final_rot.x - initial_rot.x),
+//       -initial_rot.y - ease * (final_rot.y - initial_rot.y),
+//       -initial_rot.z - ease * (final_rot.z - initial_rot.z)
+//     );
+//     let scale = Matrix4::new_nonuniform_scaling(
+//       &initial_scale.lerp(final_scale, ease)
+//     );
 
-  pub fn camera_transform2d(
-    &self,
-    t: f32,
-    initial_scale: &Vector2<f32>,
-    initial_eye: &Vector2<f32>,
-    initial_rot: f32,
-    final_scale: &Vector2<f32>,
-    final_eye: &Vector2<f32>,
-    final_rot: f32
-  ) -> Matrix3<f32> {
-    let ease = self.apply(t);
+//     scale * position * rotation
+//   }
 
-    let eye = -1.0 * initial_eye.lerp(final_eye, ease);
-    let position = Matrix3::new_translation(&eye);
-    let rotation = Matrix3::new_rotation(
-      -initial_rot - ease * (final_rot - initial_rot)
-    );
-    let scale = Matrix3::new_nonuniform_scaling(
-      &initial_scale.lerp(final_scale, ease)
-    );
+//   pub fn camera_transform2d(
+//     &self,
+//     t: f32,
+//     initial_scale: &Vector2<f32>,
+//     initial_eye: &Vector2<f32>,
+//     initial_rot: f32,
+//     final_scale: &Vector2<f32>,
+//     final_eye: &Vector2<f32>,
+//     final_rot: f32
+//   ) -> Matrix3<f32> {
+//     let ease = self.apply(t);
 
-    scale * position * rotation
-  }
+//     let eye = -1.0 * initial_eye.lerp(final_eye, ease);
+//     let position = Matrix3::new_translation(&eye);
+//     let rotation = Matrix3::new_rotation(
+//       -initial_rot - ease * (final_rot - initial_rot)
+//     );
+//     let scale = Matrix3::new_nonuniform_scaling(
+//       &initial_scale.lerp(final_scale, ease)
+//     );
 
-  pub fn perspective(
-    &self,
-    t: f32,
-    aspect_ratio: f32,
-    initial_fov: f32,
-    initial_near: f32,
-    initial_far: f32,
-    final_fov: f32,
-    final_near: f32,
-    final_far: f32
-  ) -> Matrix4<f32> {
-    let ease = self.apply(t);
+//     scale * position * rotation
+//   }
 
-    Matrix4::new_perspective(
-      aspect_ratio,
-      initial_fov + ease * (final_fov - initial_fov),
-      initial_near + ease * (final_near - initial_near),
-      initial_far + ease * (final_far - initial_far)
-    )
-  }
+//   pub fn perspective(
+//     &self,
+//     t: f32,
+//     aspect_ratio: f32,
+//     initial_fov: f32,
+//     initial_near: f32,
+//     initial_far: f32,
+//     final_fov: f32,
+//     final_near: f32,
+//     final_far: f32
+//   ) -> Matrix4<f32> {
+//     let ease = self.apply(t);
 
-  pub fn orthographic(
-    &self,
-    t: f32,
-    initial_left: f32,
-    initial_right: f32,
-    initial_bottom: f32,
-    initial_top: f32,
-    initial_near: f32,
-    initial_far: f32,
-    final_left: f32,
-    final_right: f32,
-    final_bottom: f32,
-    final_top: f32,
-    final_near: f32,
-    final_far: f32
-  ) -> Matrix4<f32> {
-    let ease = self.apply(t);
+//     Matrix4::new_perspective(
+//       aspect_ratio,
+//       initial_fov + ease * (final_fov - initial_fov),
+//       initial_near + ease * (final_near - initial_near),
+//       initial_far + ease * (final_far - initial_far)
+//     )
+//   }
 
-    Matrix4::new_orthographic(
-      initial_left + ease * (final_left - initial_left),
-      initial_right + ease * (final_right - initial_right),
-      initial_bottom + ease * (final_bottom - initial_bottom),
-      initial_top + ease * (final_top - initial_top),
-      initial_near + ease * (final_near - initial_near),
-      initial_far + ease * (final_far - initial_far)
-    )
-  }
-}
+//   pub fn orthographic(
+//     &self,
+//     t: f32,
+//     initial_left: f32,
+//     initial_right: f32,
+//     initial_bottom: f32,
+//     initial_top: f32,
+//     initial_near: f32,
+//     initial_far: f32,
+//     final_left: f32,
+//     final_right: f32,
+//     final_bottom: f32,
+//     final_top: f32,
+//     final_near: f32,
+//     final_far: f32
+//   ) -> Matrix4<f32> {
+//     let ease = self.apply(t);
 
-pub struct Animation {
-  pub duration: f32,
-  pub update: AnimationUpdate,
-  pub interpolation: Interpolation
+//     Matrix4::new_orthographic(
+//       initial_left + ease * (final_left - initial_left),
+//       initial_right + ease * (final_right - initial_right),
+//       initial_bottom + ease * (final_bottom - initial_bottom),
+//       initial_top + ease * (final_top - initial_top),
+//       initial_near + ease * (final_near - initial_near),
+//       initial_far + ease * (final_far - initial_far)
+//     )
+//   }
+// }
+
+// pub struct Animation {
+//   pub duration: f32,
+//   pub entity: usize,
+//   // pub update: AnimationUpdate,
+//   // pub interpolation: Interpolation
+// }
+
+pub trait Interpolate {
+  fn interpolate(&self, t: f32, world: &mut World);
 }

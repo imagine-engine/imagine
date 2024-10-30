@@ -1,5 +1,5 @@
 # =============================================================================
-# rotating_cube.py
+# test_output.py
 # =============================================================================
 # Copyright 2024 Menelik Eyasu
 
@@ -16,13 +16,34 @@
 # limitations under the License.
 # =============================================================================
 
+import os
 from imagine import *
-from imagine.objects import Square
 
-camera = Camera2D()
-camera.record()
+def test_record():
+  assert output.width == 1920
+  assert output.height == 1080
+  assert not output.recording
 
-square = Square(size=0.5)
-square.rotate(t=5)
+  video_made = os.path.isfile('video.mp4')
+  assert not video_made
 
-camera.stop()
+  record()
+  assert output.recording
+  assert video_made != os.path.isfile('video.mp4')
+
+  stop()
+  assert not output.recording
+
+  labeled_video_made = os.path.isfile('test.mp4')
+  assert not labeled_video_made
+
+  record('test.mp4')
+  assert output.recording
+  assert labeled_video_made != os.path.isfile('test.mp4')
+
+  stop()
+  assert not output.recording
+
+  # Clean up
+  os.remove('video.mp4')
+  os.remove('test.mp4')

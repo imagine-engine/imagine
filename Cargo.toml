@@ -1,3 +1,4 @@
+workspace = { members = ["imagine/macros"] }
 [package]
 name = "imagine"
 version = "0.1.0"
@@ -25,6 +26,7 @@ tobj = "4.0.0"
 delaunator = "1.0.2"
 ttf-parser = "0.20.0"
 svgtypes = "0.14.0"
+imagine_macros = { path = "imagine/macros" }
 
 [dependencies.image]
 version = "0.24"

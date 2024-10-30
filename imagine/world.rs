@@ -1,207 +1,304 @@
-/*******************************************************************************
-  world.rs
-********************************************************************************
-  Copyright 2024 Menelik Eyasu
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*******************************************************************************/
-
-use crate::Color;
 use pyo3::prelude::*;
-use nalgebra::Matrix3;
-use crate::math::Vector;
-use crate::controller::*;
-use std::sync::{Arc, Mutex};
-use crate::instance::IMAGINE;
-use crate::render::primitives::*;
-use crate::objects::{Path, Ellipse};
-use std::collections::{HashMap, BTreeMap};
+use std::slice::Iter;
+use std::default::Default;
+use std::any::{Any, TypeId};
+use std::collections::{HashMap, HashSet};
 
+use crate::instance::IMAGINE;
+
+use imagine_macros::register;
+
+use std::sync::Mutex;
+
+use crate::video::VideoComponent;
+use crate::render::{
+  MeshComponent,
+  PhongComponent,
+  PBRComponent,
+  Transform3DComponent,
+  PerspectiveCameraComponent
+};
+
+use crate::path::{
+  PathComponent,
+  EllipseComponent,
+  BackgroundComponent,
+  Transform2DComponent,
+  Camera2DComponent
+};
+
+use crate::color::Color;
+use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
+use crate::render::primitives::{
+  CameraProjection,
+  StrokeLinecap
+};
+
+#[derive(Default)]
 pub enum Domain {
+  #[default]
+  Default,
   World3D,
-  World2D,
-  Default
+  World2D
 }
 
+#[register(
+  MeshComponent,
+  PhongComponent,
+  PBRComponent,
+  Transform3DComponent,
+  PerspectiveCameraComponent,
+  PathComponent,
+  EllipseComponent,
+  BackgroundComponent,
+  Transform2DComponent,
+  Camera2DComponent,
+  VideoComponent
+)]
 pub struct World {
   pub age: f32,
   pub domain: Domain,
-  pub camera_3d: Camera3D,
-  pub camera_2d: Camera2D,
-  // pub default_camera_2d: i32,
-  // pub default_camera_3d: i32,
-  // pub cameras_3d: HashMap<i32, Camera3D>,
-  // pub cameras_2d: HashMap<i32, Camera2D>,
-  pub lights: HashMap<i32, WorldLight>,
-  pub meshes: HashMap<i32, Object3D>,
-  pub ellipses: HashMap<i32, EllipseConfig>,
-  pub paths: BTreeMap<i32, PathConfig>,
-  pub points: Vec<f32>,
-  pub controls: Vec<u8>,
-  pub animating: bool,
-  pub clear: bool
+  max_entity_id: usize,
+  archetypes: HashMap<u32, HashSet<usize>>
 }
 
 impl World {
-  pub fn add_mesh(&mut self, object: Object3D) -> Object3DController {
-    let id = self.meshes.len() as i32;
-    self.meshes.insert(id, object);
+  pub fn new() -> Self {
+    let mut world = Self::default();
+    let camera = world.add_entity((
+      PerspectiveCameraComponent::default(),
+      Transform3DComponent::default(),
+      VideoComponent::new(1920, 1080, 24)
+    ));
 
-    Object3DController { id }
-  }
-
-  pub fn add_path(
-    &mut self,
-    points: &Vec<f32>,
-    controls: &Vec<u8>,
-    bounds: [f32; 4],
-    path_segments: usize
-  ) -> Path {
-    let id = self.paths.len() as i32;
-    self.points.extend(points);
-    self.controls.extend(controls);
-
-    Python::with_gil(|py| {
-      let path = Path {
-        id,
-        rotation: Arc::new(Mutex::new(0.0)),
-        scale: Py::new(py, Vector::new(1.0, 1.0, 0.0)).unwrap(),
-        position: Py::new(py, Vector::new(0.0, 0.0, 0.0)).unwrap(),
-        fill: Py::new(py, Color { r: 255, g: 255, b: 255 }).unwrap(),
-        stroke: Py::new(py, Color { r: 255, g: 0, b: 0 }).unwrap()
-      };
-
-      let config = PathConfig {
+    let path = world.add_entity((
+      PathComponent {
         filled: true,
         evenodd: true,
         linecap: StrokeLinecap::NoStroke,
-        bounds,
-        path_segments,
-        fill: Py::clone_ref(&path.fill, py),
-        stroke: Py::clone_ref(&path.stroke, py),
-        rotation: Arc::clone(&path.rotation),
-        scale: Py::clone_ref(&path.scale, py),
-        position: Py::clone_ref(&path.position, py),
-        transform: Matrix3::identity()
-      };
-      self.paths.insert(id, config);
-      
-      path
-    })
-  }
-
-  pub fn add_ellipse(
-    &mut self,
-    width: f32,
-    height: f32
-  ) -> Ellipse {
-    let id = self.ellipses.len() as i32;
-    Python::with_gil(|py| {
-      let ellipse = Ellipse {
-        id,
-        rotation: Arc::new(Mutex::new(0.0)),
-        scale: Py::new(py, Vector::new(1.0, 1.0, 0.0)).unwrap(),
-        position: Py::new(py, Vector::new(0.0, 0.0, 0.0)).unwrap(),
-        fill: Py::new(py, Color { r: 255, g: 255, b: 255 }).unwrap(),
-        stroke: Py::new(py, Color { r: 255, g: 0, b: 0 }).unwrap()
-      };
-
-      let config = EllipseConfig {
+        bounds: [0.0, 0.0, 0.0, 0.0],
+        path_segments: 0
+      },
+      BackgroundComponent {
         opacity: 1.0,
-        width,
-        height,
-        fill: Py::clone_ref(&ellipse.fill, py),
-        stroke: Py::clone_ref(&ellipse.stroke, py),
-        rotation: Arc::clone(&ellipse.rotation),
-        scale: Py::clone_ref(&ellipse.scale, py),
-        position: Py::clone_ref(&ellipse.position, py),
-        transform: Matrix3::identity()
-      };
-      self.ellipses.insert(id, config);
-      
-      ellipse
-    })
+        fill: Color { r: 255, g: 255, b: 255 },
+        stroke: Color { r: 255, g: 255, b: 255 }
+      },
+      Transform2DComponent::default()
+    ));
+
+    for (mesh, material) in world.query::<(MeshComponent, PhongComponent)>() {}
+
+    world
   }
 
-  pub fn add_camera2d(&mut self, camera: Camera2D) -> Camera2DController {
-    // let id = self.cameras_2d.len() as i32;
-    // self.cameras_2d.insert(id, camera);
+  pub fn add_entity<T>(&mut self, bundle: T) -> usize
+    where
+        T: for<'a> ComponentBundle<'a>,
+        Self: AddBundle<T>
+  {
+    let id = self.max_entity_id;
+    self.push_components(bundle);
 
-    // Camera2DController { id }
-    Camera2DController { id: 0 }
+    self.archetypes.entry(T::mask())
+                  .or_insert(HashSet::new())
+                  .insert(id);
+    self.max_entity_id += 1;
+
+    id
   }
 
-  pub fn add_camera3d(&mut self, camera: Camera3D) -> Camera3DController {
-    // let id = self.cameras_3d.len() as i32;
-    // self.cameras_3d.insert(id, camera);
-
-    // Camera3DController { id }
-    Camera3DController { id: 0 }
+  pub fn get<T>(&self, id: usize) -> Option<&T>
+    where
+        Self: ComponentSet<T>
+  {
+    self.get_component(id)
   }
 
-  pub fn access_mesh<F>(
-    &mut self,
-    id: i32,
-    modify: F
-  ) where F: Fn(&mut Object3D) {
-    if self.meshes.contains_key(&id) {
-      self.meshes.entry(id).and_modify(modify);
+  pub fn get_mut<T>(&mut self, id: usize) -> Option<&mut T>
+    where
+        Self: ComponentSet<T>
+  {
+    self.get_component_mut(id)
+  }
+
+  pub fn iter<T>(&self) -> Values<'_, usize, T>
+    where
+        Self: ComponentSet<T>
+  {
+    self.iter_components()
+  }
+
+  pub fn iter_mut<T>(&mut self) -> ValuesMut<'_, usize, T>
+    where
+        Self: ComponentSet<T>
+  {
+    self.iter_components_mut()
+  }
+
+  pub fn query<'a, T: ComponentBundle<'a>>(&self) -> Queries<'_, T> {
+    self.new_query(self.find_entities::<T>())
+  }
+
+  pub fn query_mut<'a, T: ComponentBundle<'a>>(&mut self) -> QueriesMut<'_, T> {
+    self.new_mut_query(self.find_entities::<T>())
+  }
+
+  pub fn find_entities<'a, T: ComponentBundle<'a>>(&self) -> Vec<usize> {
+    let bundle_mask = T::mask();
+    let mut entities: Vec<usize> = Vec::new();
+    for (archetype, entity_ids) in self.archetypes.iter() {
+      if archetype & bundle_mask == *archetype {
+        entities.extend(entity_ids);
+      }
     }
+
+    entities
   }
 
-  pub fn access_path<F>(
-    &mut self,
-    id: i32,
-    modify: F
-  ) where F: Fn(&mut PathConfig) {
-    if self.paths.contains_key(&id) {
-      self.paths.entry(id).and_modify(modify);
-    }
-  }
-
-  pub fn access_ellipse<F>(
-    &mut self,
-    id: i32,
-    modify: F
-  ) where F: Fn(&mut EllipseConfig) {
-    if self.ellipses.contains_key(&id) {
-      self.ellipses.entry(id).and_modify(modify);
-    }
-  }
-
-  // pub fn add_point(&mut self, path_id: i32, x: f32, y: f32) {
-  //   let mut offset = 0;
-  //   for (id, path) in world.paths.iter_mut() {
-  //     if id == path_id {
-  //       if self.points.len() % 4 == 0 {
-  //         let last_x = self.points[4 * (offset+path.path_segments)];
-  //         let last_y = self.points[4 * (offset+path.path_segments)];
-  //         self.points.push(4 * offset, last_x);
-  //         self.points.push(4 * offset + 1, last_y);
-  //       }
-  //       self.points.insert(4 * offset, x);
-  //       self.points.insert(4 * offset, y);
-  //       self.controls.insert(offset, 0);
-
-  //       *path.path_segments += 1;
-  //       break;
+  // pub fn find_entities<'a, T: ComponentBundle<'a>>(&self) -> Vec<usize> {
+  //   let mut entities: Vec<usize> = Vec::new();
+  //   for (archetype, entity_ids) in self.archetypes.iter() {
+  //     if T::matches(archetype) {
+  //       entities.extend(entity_ids);
   //     }
-
-  //     offset += path.path_segments;
   //   }
+
+  //   entities
   // }
+
+  // pub fn delete() -> ____ {}
 }
 
+//
+impl<A, B> AddBundle<(A, B)> for World
+  where
+      A: Component,
+      B: Component,
+      Self: ComponentSet<A> + ComponentSet<B>
+{
+  fn push_components(&mut self, components: (A, B)) {
+    self.push_component(components.0);
+    self.push_component(components.1);
+  }
+  fn insert_components(&mut self, id: usize, components: (A, B)) {
+    self.insert_component(id, components.0);
+    self.insert_component(id, components.1);
+  }
+}
+impl<A, B, C> AddBundle<(A, B, C)> for World
+  where
+      A: Component,
+      B: Component,
+      C: Component,
+      Self: ComponentSet<A> + ComponentSet<B> + ComponentSet<C>
+{
+  fn push_components(&mut self, components: (A, B, C)) {
+    self.push_component(components.0);
+    self.push_component(components.1);
+    self.push_component(components.2);
+  }
+  fn insert_components(&mut self, id: usize, components: (A, B, C)) {
+    self.insert_component(id, components.0);
+    self.insert_component(id, components.1);
+    self.insert_component(id, components.2);
+  }
+}
+
+// Will cut off early if any entity ID is wrong
+impl<'a, T> Iterator for Queries<'a, T>
+  where
+      T: ComponentBundle<'a>,
+      Self: GetBundle<'a, T>
+{
+  type Item = T::Get;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    let bundle = self.get_bundle();
+    self.index += 1;
+    bundle
+  }
+}
+
+impl<'a, T> Iterator for QueriesMut<'a, T>
+  where
+      T: ComponentBundle<'a>,
+      Self: GetMutBundle<'a, T>
+{
+  type Item = T::GetMut;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    let bundle = self.get_mut_bundle();
+    self.index += 1;
+    bundle
+  }
+}
+
+pub trait ComponentBundle<'a> {
+  type Get;
+  type GetMut;
+  fn mask() -> u32;
+}
+impl<'a, A, B> ComponentBundle<'a> for (A, B)
+  where
+      A: 'a + Component,
+      B: 'a + Component
+{
+  type Get = (&'a A, &'a B);
+  type GetMut = (&'a mut A, &'a mut B);
+  fn mask() -> u32 { A::mask() & B::mask() }
+}
+impl<'a, A, B, C> ComponentBundle<'a> for (A, B, C)
+  where
+      A: 'a + Component,
+      B: 'a + Component,
+      C: 'a + Component
+{
+  type Get = (&'a A, &'a B, &'a C);
+  type GetMut = (&'a mut A, &'a mut B, &'a mut C);
+  fn mask() -> u32 { A::mask() & B::mask() & C::mask() }
+}
+
+trait GetBundle<'a, T: ComponentBundle<'a>> {
+  fn get_bundle(&self) -> Option<T::Get>;
+}
+impl<'a, A, B> GetBundle<'a, (A, B)> for Queries<'a, (A, B)>
+  where
+      A: Component,
+      B: Component,
+      Self: QueryGet<A> + QueryGet<B>
+{
+  fn get_bundle(&self) -> Option<(&'a A, &'a B)> {
+    if let (Some(c_a), Some(c_b)) = (self.get(self.index), self.get(self.index)) {
+      return Some((c_a, c_b));
+    }
+
+    None
+  }
+}
+
+trait GetMutBundle<'a, T: ComponentBundle<'a>> {
+  fn get_mut_bundle(&mut self) -> Option<T::GetMut>;
+}
+impl<'a, A, B> GetMutBundle<'a, (A, B)> for QueriesMut<'a, (A, B)>
+  where
+      A: Component,
+      B: Component,
+      Self: QueryGetMut<A> + QueryGetMut<B>
+{
+  fn get_mut_bundle(&mut self) -> Option<(&'a mut A, &'a mut B)> {
+    if let (Some(a), Some(b)) = (
+      self.get_mut(self.index),
+      self.get_mut(self.index)
+    ) {
+      return Some((a, b));
+    }
+
+    None
+  }
+}
+
+// Python wrapper
 #[pyclass(name="World")]
 pub struct PyWorld;
 
@@ -212,15 +309,15 @@ impl PyWorld {
     Ok(IMAGINE.lock().unwrap().world.age)
   }
 
-  // #[cfg(debug_assertions)]
-  #[getter(points)]
-  fn get_points(&self) -> PyResult<Vec<f32>> {
-    Ok(IMAGINE.lock().unwrap().world.points.clone())
-  }
+  // // #[cfg(debug_assertions)]
+  // #[getter(points)]
+  // fn get_points(&self) -> PyResult<Vec<f32>> {
+  //   Ok(IMAGINE.lock().unwrap().world.points.clone())
+  // }
 
-  // #[cfg(debug_assertions)]
-  #[getter(controls)]
-  fn get_controls(&self) -> PyResult<Vec<u8>> {
-    Ok(IMAGINE.lock().unwrap().world.controls.clone())
-  }
+  // // #[cfg(debug_assertions)]
+  // #[getter(controls)]
+  // fn get_controls(&self) -> PyResult<Vec<u8>> {
+  //   Ok(IMAGINE.lock().unwrap().world.controls.clone())
+  // }
 }

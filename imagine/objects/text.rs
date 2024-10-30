@@ -1,27 +1,9 @@
-/*******************************************************************************
-  text.rs
-********************************************************************************
-  Copyright 2024 Menelik Eyasu
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*******************************************************************************/
-
 use pyo3::prelude::*;
 use ttf_parser as ttf;
 use std::f32::consts::PI;
-use crate::instance::IMAGINE;
 use std::collections::HashMap;
-use crate::objects::{Path, PathBuilder};
+use crate::objects::Path;
+use crate::path::PathBuilder;
 
 #[pyclass]
 pub struct Font {
@@ -72,26 +54,27 @@ impl Text {
 
   #[getter(bounds)]
   fn get_bounds(&self) -> PyResult<Option<[f32; 4]>> {
-    match IMAGINE.lock().unwrap().world.paths.get(&self.path.id) {
-      Some(path) => Ok(Some(path.bounds)),
-      None => Ok(None)
-    }
+    // match IMAGINE.lock().unwrap().world.paths.get(&self.path.id) {
+    //   Some(path) => Ok(Some(path.bounds)),
+    //   None => Ok(None)
+    // }
+    Ok(None)
   }
 
-  #[pyo3(signature=(x, y, t=1.0))]
-  pub fn grow(&mut self, x: f32, y: f32, t: f32) {
-    self.path.grow(x, y, t);
-  }
+  // #[pyo3(signature=(x, y, t=1.0))]
+  // pub fn grow(&mut self, x: f32, y: f32, t: f32) {
+  //   self.path.grow(x, y, t);
+  // }
 
-  #[pyo3(signature=(x, y, t=1.0))]
-  pub fn translate(&mut self, x: f32, y: f32, t: f32) {
-    self.path.translate(x, y, t);
-  }
+  // #[pyo3(signature=(x, y, t=1.0))]
+  // pub fn translate(&mut self, x: f32, y: f32, t: f32) {
+  //   self.path.translate(x, y, t);
+  // }
 
-  #[pyo3(signature=(t=1.0, angle=2.0*PI))]
-  pub fn rotate(&mut self, t: f32, angle: f32) {
-    self.path.rotate(t, angle);
-  }
+  // #[pyo3(signature=(t=1.0, angle=2.0*PI))]
+  // pub fn rotate(&mut self, t: f32, angle: f32) {
+  //   self.path.rotate(t, angle);
+  // }
 }
 
 impl Font {
