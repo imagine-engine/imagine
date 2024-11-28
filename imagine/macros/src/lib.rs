@@ -35,7 +35,7 @@ pub fn register(args: TokenStream, input: TokenStream) -> TokenStream {
 
     for (i, ty) in components.into_iter().enumerate() {
       if i >= 32 {
-        panic!("only 32 components can be registered at a time");
+        panic!("only 32 components can be registered in total");
       }
 
       let n = i + 1;

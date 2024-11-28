@@ -22,15 +22,16 @@ import shutil
 import subprocess
 
 def pytest_sessionstart(session):
-    lib = glob.glob('tests/imagine*.so')
+    lib = glob.glob('tests/imagine.*.so')
     root_lib = glob.glob('imagine.*.so')
     if not lib and root_lib:
-        shutil.move(root_lib[0], f'tests/{root_lib[0]}')
+        shutil.move(root_lib[0], 'tests')
     else:
         subprocess.call(['cargo', 'build'])
         shutil.move(glob.glob('target/debug/*.dylib')[0], 'tests/imagine.so')
 
 def pytest_sessionfinish(session, exitstatus):
     lib = glob.glob('tests/imagine.*.so')
-    if lib:
+    root_lib = glob.glob('imagine.*.so')
+    if lib and not root_lib:
         shutil.move(lib[0], os.getcwd())

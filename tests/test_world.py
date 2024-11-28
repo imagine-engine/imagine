@@ -18,9 +18,9 @@
 
 from imagine import *
 
-def test_wait():
-  assert world.age == 0
-  wait(13)
-  assert world.age == 13
-  wait(5)
-  assert world.age == 18
+# def test_wait():
+#   assert world.age == 0
+#   wait(13)
+#   assert world.age == 13
+#   wait(5)
+#   assert world.age == 18

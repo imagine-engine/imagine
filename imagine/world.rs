@@ -11,7 +11,7 @@ use imagine_macros::register;
 use std::sync::Mutex;
 
 use crate::video::VideoComponent;
-use crate::render::{
+use crate::render3d::{
   MeshComponent,
   PhongComponent,
   PBRComponent,
@@ -19,6 +19,7 @@ use crate::render::{
   PerspectiveCameraComponent
 };
 
+use crate::path::StrokeLinecap;
 use crate::path::{
   PathComponent,
   EllipseComponent,
@@ -29,18 +30,6 @@ use crate::path::{
 
 use crate::color::Color;
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
-use crate::render::primitives::{
-  CameraProjection,
-  StrokeLinecap
-};
-
-#[derive(Default)]
-pub enum Domain {
-  #[default]
-  Default,
-  World3D,
-  World2D
-}
 
 #[register(
   MeshComponent,
@@ -57,9 +46,9 @@ pub enum Domain {
 )]
 pub struct World {
   pub age: f32,
-  pub domain: Domain,
-  max_entity_id: usize,
-  archetypes: HashMap<u32, HashSet<usize>>
+  // scenes: HashMap<String, Vec<usize>>,
+  archetypes: HashMap<u32, HashSet<usize>>,
+  max_entity_id: usize
 }
 
 impl World {

@@ -4,6 +4,7 @@ mod color;
 mod video;
 mod world;
 mod render;
+mod render3d;
 mod objects;
 mod instance;
 mod animation;

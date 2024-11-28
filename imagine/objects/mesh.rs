@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 use crate::math::vector::Vector;
-use crate::render::primitives::Vertex3D;
+use crate::render3d::primitives::Vertex3D;
 
 #[pyclass]
 pub struct Mesh {

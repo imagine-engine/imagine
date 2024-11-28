@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 
 use crate::path::PathBuilder;
 use crate::objects::{Mesh, Path};
-use crate::render::primitives::Vertex3D;
+use crate::render3d::primitives::Vertex3D;
 
 #[pyfunction]
 #[pyo3(name="Cube")]

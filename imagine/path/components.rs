@@ -3,7 +3,15 @@ use std::slice::Iter;
 use nalgebra::{Vector2, Matrix3};
 
 use crate::color::Color;
-use crate::render::primitives::{Texture, StrokeLinecap};
+use crate::render::primitives::Texture;
+
+#[derive(Copy, Clone)]
+pub enum StrokeLinecap {
+  NoStroke,
+  RoundCap,
+  ButtCap,
+  SquareCap
+}
 
 pub struct PathComponent {
   pub filled: bool,

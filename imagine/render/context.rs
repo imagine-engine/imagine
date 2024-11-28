@@ -1,11 +1,8 @@
 // use wgpu::util::DeviceExt;
+use std::any::Any;
 use image::GenericImageView;
-use crate::render::RenderResource;
-use crate::render::primitives::{
-  Texture,
-  PhongMaterial,
-  Material2D
-};
+use std::collections::HashMap;
+use crate::render::primitives::Texture;
 
 pub struct RenderContext {
   pub queue: wgpu::Queue,
@@ -15,9 +12,7 @@ pub struct RenderContext {
   pub max_models: u64,
   // pub max_paths: u64,
   pub batch_size_2d: usize,
-  // pub pbr_layout: wgpu::BindGroupLayout,
-  pub phong_layout: wgpu::BindGroupLayout,
-  pub m2_layout: wgpu::BindGroupLayout
+  pub resources: HashMap<String, Box<dyn Any + Send>>
 }
 
 impl RenderContext {
@@ -40,16 +35,6 @@ impl RenderContext {
         .await
         .unwrap();
 
-    // let pbr_layout = device.create_bind_group_layout(
-    //   &PBRMaterial::bind_layout()
-    // );
-    let phong_layout = device.create_bind_group_layout(
-      &PhongMaterial::bind_layout()
-    );
-    let m2_layout = device.create_bind_group_layout(
-      &Material2D::bind_layout()
-    );
-
     Self {
       device,
       queue,
@@ -63,10 +48,28 @@ impl RenderContext {
         height: 1080,
         depth_or_array_layers: 1
       },
-      // pbr_layout,
-      phong_layout,
-      m2_layout
+      resources: HashMap::new()
     }
+  }
+
+  pub fn add_resource<T: Any + Send>(&mut self, name: &str, resource: T) {
+    self.resources.insert(String::from(name), Box::new(resource));
+  }
+
+  pub fn get<T: Any>(&self, name: &str) -> Option<&T> {
+    if let Some(resource) = self.resources.get(name) {
+      return resource.downcast_ref();
+    }
+
+    None
+  }
+
+  pub fn get_mut<T: Any>(&mut self, name: &str) -> Option<&mut T> {
+    if let Some(resource) = self.resources.get_mut(name) {
+      return resource.downcast_mut();
+    }
+
+    None
   }
 
   pub fn frame_size(&self) -> usize {
@@ -128,18 +131,16 @@ impl RenderContext {
     &self,
     size: u64,
     usage: wgpu::BufferUsages
-  ) -> RenderResource {
-    RenderResource::Buffer(
-      self.device.create_buffer(&wgpu::BufferDescriptor {
-        label: None,
-        usage,
-        size: size * std::mem::size_of::<T>() as u64,
-        mapped_at_creation: false
-      })
-    )
+  ) -> wgpu::Buffer {
+    self.device.create_buffer(&wgpu::BufferDescriptor {
+      label: None,
+      usage,
+      size: size * std::mem::size_of::<T>() as u64,
+      mapped_at_creation: false
+    })
   }
 
-  pub fn create_framebuffer(&self) -> RenderResource {
+  pub fn create_framebuffer(&self) -> wgpu::Buffer {
     self.create_buffer::<u32>(
       (self.size.width * self.size.height) as u64,
       wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ
