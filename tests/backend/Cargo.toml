@@ -1,0 +1,12 @@
+[package]
+name = "imagine_backend_tests"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+doctest = false
+
+[dependencies]
+approx = "0.5.1"
+imagine = { path = "../../", version = "0.1.0" }
+rand = "0.8.5"
