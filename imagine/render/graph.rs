@@ -25,13 +25,13 @@ impl RenderGraph {
 
   pub fn default() -> Self {
     let mut graph = RenderGraph::empty();
+
     let phong_pass = PhongPassBuilder::new()
-                      .camera("main_camera")
+                      .camera("main_camera_3d")
                       .mesh_buffer("world_3d")
                       .output("main_output_texture")
-                      .framebuffer("frame")
+                      .framebuffer("main_frame")
                       .build(&mut graph.context);
-
     graph.add_node("main_pass", phong_pass);
 
     graph

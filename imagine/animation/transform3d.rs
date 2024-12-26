@@ -61,15 +61,7 @@ impl Interpolate for TransformAnimation3D {
         target.rotation = r.0.lerp(&r.1, t);
       }
 
-      let scale = Matrix4::new_nonuniform_scaling(&target.scale);
-      let position = Matrix4::new_translation(&target.position);
-      let rotation = Matrix4::from_euler_angles(
-        target.rotation.x,
-        target.rotation.y,
-        target.rotation.z
-      );
-
-      target.transform = scale * position * rotation;
+      target.sync();
     }
   }
 }

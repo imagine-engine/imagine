@@ -44,7 +44,7 @@ pub struct Transform2DComponent {
   pub scale: Vector2<f32>,
   pub position: Vector2<f32>,
   pub rotation: f32,
-  pub transform: Matrix3<f32>
+  transform: Matrix3<f32>
 }
 
 impl Default for Transform2DComponent {
@@ -60,32 +60,45 @@ impl Default for Transform2DComponent {
 
 impl Transform2DComponent {
   pub fn new(scale: Vector2<f32>, position: Vector2<f32>, rotation: f32) -> Self {
-    let mut transform = Self {
+    Self {
       scale,
       position,
       rotation,
-      transform: Matrix3::identity()
-    };
-    transform.sync();
-
-    transform
+      transform: Self::calculate_transform(
+        &scale,
+        &position,
+        rotation
+      )
+    }
   }
 
   pub fn sync(&mut self) {
-    let scale = Matrix3::new_nonuniform_scaling(&self.scale);
+    self.transform = Self::calculate_transform(
+      &self.scale,
+      &self.position,
+      self.rotation
+    );
+  }
+
+  fn calculate_transform(
+    scale: &Vector2<f32>,
+    position: &Vector2<f32>,
+    rotation: f32
+  ) -> Matrix3<f32> {
+    let scale = Matrix3::new_nonuniform_scaling(scale);
     // let scale = Matrix3::new_nonuniform_scaling(&Vector2::<f32>::new(
     //   1.0 / self.scale.x,
     //   1.0 / self.scale.y
     // ));
 
-    let sin_a = self.rotation.sin();
-    let cos_a = self.rotation.cos();
+    let sin_a = rotation.sin();
+    let cos_a = rotation.cos();
     let position = Matrix3::new_translation(&Vector2::<f32>::new(
-      self.position.y * sin_a - self.position.x * cos_a,
-      -self.position.x * sin_a - self.position.y * cos_a,
+      position.y * sin_a - position.x * cos_a,
+      -position.x * sin_a - position.y * cos_a,
     ));
-    let rotation = Matrix3::new_rotation(self.rotation);
+    let rotation = Matrix3::new_rotation(rotation);
 
-    self.transform = scale * position * rotation;
+    scale * position * rotation
   }
 }

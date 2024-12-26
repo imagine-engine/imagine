@@ -1,13 +1,16 @@
-mod math;
-mod path;
-mod color;
-mod video;
-mod world;
-mod render;
-mod render3d;
-mod objects;
-mod instance;
-mod animation;
+pub mod math;
+pub mod path;
+pub mod color;
+pub mod video;
+pub mod world;
+pub mod render;
+pub mod render3d;
+pub mod objects;
+pub mod instance;
+pub mod animation;
+
+#[cfg(test)]
+mod tests;
 
 use objects::*;
 use math::Vector;
@@ -73,3 +76,7 @@ fn imagine(_py: Python, m: &PyModule) -> PyResult<()> {
 
   Ok(())
 }
+
+// pub mod testing {
+//   pub use nalgebra::Vector3;
+// }

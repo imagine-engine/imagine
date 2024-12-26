@@ -16,7 +16,8 @@ use crate::render3d::{
   PhongComponent,
   PBRComponent,
   Transform3DComponent,
-  PerspectiveCameraComponent
+  PerspectiveCameraComponent,
+  OrthoCameraComponent
 };
 
 use crate::path::StrokeLinecap;
@@ -31,12 +32,19 @@ use crate::path::{
 use crate::color::Color;
 use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
 
+// struct Archetype {
+//   pub mask: u32,
+//   pub entities: Vec<usize>,
+//   pub children: Vec<Archetype>
+// }
+
 #[register(
   MeshComponent,
   PhongComponent,
   PBRComponent,
   Transform3DComponent,
   PerspectiveCameraComponent,
+  OrthoCameraComponent,
   PathComponent,
   EllipseComponent,
   BackgroundComponent,
@@ -46,41 +54,11 @@ use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
 )]
 pub struct World {
   pub age: f32,
-  // scenes: HashMap<String, Vec<usize>>,
   archetypes: HashMap<u32, HashSet<usize>>,
   max_entity_id: usize
 }
 
 impl World {
-  pub fn new() -> Self {
-    let mut world = Self::default();
-    let camera = world.add_entity((
-      PerspectiveCameraComponent::default(),
-      Transform3DComponent::default(),
-      VideoComponent::new(1920, 1080, 24)
-    ));
-
-    let path = world.add_entity((
-      PathComponent {
-        filled: true,
-        evenodd: true,
-        linecap: StrokeLinecap::NoStroke,
-        bounds: [0.0, 0.0, 0.0, 0.0],
-        path_segments: 0
-      },
-      BackgroundComponent {
-        opacity: 1.0,
-        fill: Color { r: 255, g: 255, b: 255 },
-        stroke: Color { r: 255, g: 255, b: 255 }
-      },
-      Transform2DComponent::default()
-    ));
-
-    for (mesh, material) in world.query::<(MeshComponent, PhongComponent)>() {}
-
-    world
-  }
-
   pub fn add_entity<T>(&mut self, bundle: T) -> usize
     where
         T: for<'a> ComponentBundle<'a>,
@@ -90,8 +68,8 @@ impl World {
     self.push_components(bundle);
 
     self.archetypes.entry(T::mask())
-                  .or_insert(HashSet::new())
-                  .insert(id);
+                   .or_insert(HashSet::new())
+                   .insert(id);
     self.max_entity_id += 1;
 
     id

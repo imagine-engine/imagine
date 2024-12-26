@@ -27,6 +27,8 @@ delaunator = "1.0.2"
 ttf-parser = "0.20.0"
 svgtypes = "0.14.0"
 imagine_macros = { path = "imagine/macros" }
+approx = "0.5.1"
+rand = "0.8.5"
 
 [dependencies.image]
 version = "0.24"

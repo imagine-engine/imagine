@@ -10,12 +10,84 @@ pub struct Transform3DComponent {
   pub scale: Vector3<f32>,
   pub position: Vector3<f32>,
   pub rotation: Vector3<f32>,
-  pub transform: Matrix4<f32>
+  transform: Matrix4<f32>
+}
+
+impl Default for Transform3DComponent {
+  fn default() -> Self {
+    Self {
+      scale: Vector3::repeat(1.0),
+      position: Vector3::zeros(),
+      rotation: Vector3::zeros(),
+      transform: Matrix4::identity()
+    }
+  }
+}
+
+impl Transform3DComponent {
+  pub fn new(scale: Vector3<f32>, position: Vector3<f32>, rotation: Vector3<f32>) -> Self {
+    Self {
+      scale,
+      position,
+      rotation,
+      transform: Self::calculate_transform(
+        &scale,
+        &position,
+        &rotation
+      )
+    }
+  }
+
+  pub fn sync(&mut self) {
+    self.transform = Self::calculate_transform(
+      &self.scale,
+      &self.position,
+      &self.rotation
+    );
+  }
+
+  fn calculate_transform(
+    scale: &Vector3<f32>,
+    position: &Vector3<f32>,
+    rotation: &Vector3<f32>
+  ) -> Matrix4<f32> {
+    let scale = Matrix4::new_nonuniform_scaling(scale);
+    let position = Matrix4::new_translation(position);
+    let rotation = Matrix4::from_euler_angles(
+      rotation.x,
+      rotation.y,
+      rotation.z
+    );
+
+    scale * position * rotation
+  }
 }
 
 pub struct MeshComponent {
   pub vertices: Vec<Vertex3D>,
   pub indices: Vec<u32>
+}
+
+impl MeshComponent {
+  pub fn model(&self, device: &wgpu::Device) -> Model {
+    Model {
+      size: self.indices.len() as u32,
+      vertex_buffer: device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+          label: None,
+          contents: bytemuck::cast_slice(&self.vertices),
+          usage: wgpu::BufferUsages::VERTEX
+        }
+      ),
+      index_buffer: device.create_buffer_init(
+        &wgpu::util::BufferInitDescriptor {
+          label: None,
+          contents: bytemuck::cast_slice(&self.indices),
+          usage: wgpu::BufferUsages::INDEX
+        }
+      )
+    }
+  }
 }
 
 pub struct PhongComponent {
@@ -101,86 +173,55 @@ pub struct PBRComponent {
 pub struct PerspectiveCameraComponent {
   pub aspect: f32,
   pub fov: f32,
-  pub znear: f32,
-  pub zfar: f32,
+  pub near: f32,
+  pub far: f32,
   projection: Matrix4<f32>
 }
 
-// pub struct OrthoCameraComponent {
-//   pub aspect: f32,
-//   pub fov: f32,
-//   pub znear: f32,
-//   pub zfar: f32,
-//   pub projection: Matrix4<f32>
-// }
-
 impl Default for PerspectiveCameraComponent {
   fn default() -> Self {
+    Self::new(16.0 / 9.0, 45.0, 1.0, 1000.0)
+  }
+}
+
+impl PerspectiveCameraComponent {
+  pub fn new(aspect: f32, fov: f32, near: f32, far: f32) -> Self {
     Self {
-      aspect: 16.0 / 9.0,
-      fov: 45.0,
-      znear: 1.0,
-      zfar: 1000.0,
-      projection: Matrix4::new_perspective(16.0/9.0, 45.0, 1.0, 1000.0)
+      aspect,
+      fov,
+      near,
+      far,
+      projection: Matrix4::new_perspective(aspect, fov, near, far)
     }
   }
 }
 
-impl Default for Transform3DComponent {
+pub struct OrthoCameraComponent {
+  pub left: f32,
+  pub right: f32,
+  pub bottom: f32,
+  pub top: f32,
+  pub near: f32,
+  pub far: f32,
+  projection: Matrix4<f32>
+}
+
+impl Default for OrthoCameraComponent {
   fn default() -> Self {
+    Self::new(-960.0, 960.0, 540.0, -540.0, 1.0, 1000.0)
+  }
+}
+
+impl OrthoCameraComponent {
+  pub fn new(left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) -> Self {
     Self {
-      scale: Vector3::new(1.0, 1.0, 1.0),
-      position: Vector3::new(0.0, 0.0, 0.0),
-      rotation: Vector3::new(0.0, 0.0, 0.0),
-      transform: Matrix4::identity()
-    }
-  }
-}
-
-impl Transform3DComponent {
-  pub fn new(scale: Vector3<f32>, position: Vector3<f32>, rotation: Vector3<f32>) -> Self {
-    let mut transform = Self {
-      scale,
-      position,
-      rotation,
-      transform: Matrix4::identity()
-    };
-    transform.sync();
-
-    transform
-  }
-
-  pub fn sync(&mut self) {
-    let scale = Matrix4::new_nonuniform_scaling(&self.scale);
-    let position = Matrix4::new_translation(&self.position);
-    let rotation = Matrix4::from_euler_angles(
-      self.rotation.x,
-      self.rotation.y,
-      self.rotation.z
-    );
-
-    self.transform = scale * position * rotation;
-  }
-}
-
-impl MeshComponent {
-  pub fn model(&self, device: &wgpu::Device) -> Model {
-    Model {
-      size: self.indices.len() as u32,
-      vertex_buffer: device.create_buffer_init(
-        &wgpu::util::BufferInitDescriptor {
-          label: None,
-          contents: bytemuck::cast_slice(&self.vertices),
-          usage: wgpu::BufferUsages::VERTEX
-        }
-      ),
-      index_buffer: device.create_buffer_init(
-        &wgpu::util::BufferInitDescriptor {
-          label: None,
-          contents: bytemuck::cast_slice(&self.indices),
-          usage: wgpu::BufferUsages::INDEX
-        }
-      )
+      left,
+      right,
+      bottom,
+      top,
+      near,
+      far,
+      projection: Matrix4::new_orthographic(left, right, bottom, top, near, far)
     }
   }
 }
