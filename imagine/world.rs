@@ -115,24 +115,13 @@ impl World {
     let bundle_mask = T::mask();
     let mut entities: Vec<usize> = Vec::new();
     for (archetype, entity_ids) in self.archetypes.iter() {
-      if archetype & bundle_mask == *archetype {
+      if bundle_mask & archetype == bundle_mask {
         entities.extend(entity_ids);
       }
     }
 
     entities
   }
-
-  // pub fn find_entities<'a, T: ComponentBundle<'a>>(&self) -> Vec<usize> {
-  //   let mut entities: Vec<usize> = Vec::new();
-  //   for (archetype, entity_ids) in self.archetypes.iter() {
-  //     if T::matches(archetype) {
-  //       entities.extend(entity_ids);
-  //     }
-  //   }
-
-  //   entities
-  // }
 
   // pub fn delete() -> ____ {}
 }
@@ -213,7 +202,7 @@ impl<'a, A, B> ComponentBundle<'a> for (A, B)
 {
   type Get = (&'a A, &'a B);
   type GetMut = (&'a mut A, &'a mut B);
-  fn mask() -> u32 { A::mask() & B::mask() }
+  fn mask() -> u32 { A::mask() | B::mask() }
 }
 impl<'a, A, B, C> ComponentBundle<'a> for (A, B, C)
   where
@@ -223,7 +212,7 @@ impl<'a, A, B, C> ComponentBundle<'a> for (A, B, C)
 {
   type Get = (&'a A, &'a B, &'a C);
   type GetMut = (&'a mut A, &'a mut B, &'a mut C);
-  fn mask() -> u32 { A::mask() & B::mask() & C::mask() }
+  fn mask() -> u32 { A::mask() | B::mask() | C::mask() }
 }
 
 trait GetBundle<'a, T: ComponentBundle<'a>> {
