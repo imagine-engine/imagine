@@ -69,8 +69,8 @@ pub fn register(args: TokenStream, input: TokenStream) -> TokenStream {
             self.#field_name.insert(self.max_entity_id, component);
           }
 
-          fn delete_component(&mut self, id: usize) {
-            self.#field_name.remove(&id);
+          fn delete_component(&mut self, id: usize) -> Option<#ty> {
+            self.#field_name.remove(&id)
           }
 
           fn iter_components(&self) -> Values<'_, usize, #ty> {
@@ -111,12 +111,13 @@ pub fn register(args: TokenStream, input: TokenStream) -> TokenStream {
       fn insert_component(&mut self, id: usize, component: T) {}
       fn get_component(&self, id: usize) -> Option<&T> { None }
       fn get_component_mut(&mut self, id: usize) -> Option<&mut T> { None }
-      fn delete_component(&mut self, id: usize) {}
+      fn delete_component(&mut self, id: usize) -> Option<T>;
       fn iter_components(&self) -> Values<'_, usize, T>;
       fn iter_components_mut(&mut self) -> ValuesMut<'_, usize, T>;
     }
 
-    pub trait AddBundle<T> {
+    pub trait HandleBundle<T> {
+      fn delete_components(&mut self, id: usize) -> Option<T>;
       fn push_components(&mut self, components: T);
       fn insert_components(&mut self, id: usize, components: T);
     }

@@ -62,7 +62,7 @@ impl World {
   pub fn add_entity<T>(&mut self, bundle: T) -> usize
     where
         T: for<'a> ComponentBundle<'a>,
-        Self: AddBundle<T>
+        Self: HandleBundle<T>
   {
     let id = self.max_entity_id;
     self.push_components(bundle);
@@ -73,6 +73,20 @@ impl World {
     self.max_entity_id += 1;
 
     id
+  }
+
+  pub fn delete<T>(&mut self, id: usize) -> Option<T>
+    where
+        T: for<'a> ComponentBundle<'a>,
+        Self: HandleBundle<T>
+  {
+    if let Some(archetype) = self.archetypes.get_mut(&T::mask()) {
+      if archetype.remove(&id) {
+        return self.delete_components(id);
+      }
+    }
+
+    None
   }
 
   pub fn get<T>(&self, id: usize) -> Option<&T>
@@ -127,7 +141,7 @@ impl World {
 }
 
 //
-impl<A, B> AddBundle<(A, B)> for World
+impl<A, B> HandleBundle<(A, B)> for World
   where
       A: Component,
       B: Component,
@@ -141,8 +155,18 @@ impl<A, B> AddBundle<(A, B)> for World
     self.insert_component(id, components.0);
     self.insert_component(id, components.1);
   }
+  fn delete_components(&mut self, id: usize) -> Option<(A, B)> {
+    if let (Some(a), Some(b)) = (
+      self.delete_component(id),
+      self.delete_component(id)
+    ) {
+      return Some((a, b));
+    }
+
+    None
+  }
 }
-impl<A, B, C> AddBundle<(A, B, C)> for World
+impl<A, B, C> HandleBundle<(A, B, C)> for World
   where
       A: Component,
       B: Component,
@@ -159,9 +183,19 @@ impl<A, B, C> AddBundle<(A, B, C)> for World
     self.insert_component(id, components.1);
     self.insert_component(id, components.2);
   }
+  fn delete_components(&mut self, id: usize) -> Option<(A, B, C)> {
+    if let (Some(a), Some(b), Some(c)) = (
+      self.delete_component(id),
+      self.delete_component(id),
+      self.delete_component(id)
+    ) {
+      return Some((a, b, c));
+    }
+
+    None
+  }
 }
 
-// Will cut off early if any entity ID is wrong
 impl<'a, T> Iterator for Queries<'a, T>
   where
       T: ComponentBundle<'a>,

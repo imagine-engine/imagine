@@ -12,11 +12,11 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 
 macro_rules! assert_approx_eq {
   ($a:expr, $b:expr) => {
-    assert!($a.approx_eq($b.unwrap(), f32::EPSILON));
+    assert!($a.approx_eq($b, f32::EPSILON));
   };
 
   ($a:expr, $b:expr, $eps:expr) => {
-    assert!($a.approx_eq($b.unwrap(), $eps));
+    assert!($a.approx_eq($b, $eps));
   };
 }
 pub(crate) use assert_approx_eq;

@@ -5,6 +5,7 @@ version = "0.1.0"
 edition = "2018"
 
 [lib]
+doctest = false
 path = "imagine/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
