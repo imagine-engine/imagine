@@ -32,17 +32,14 @@ fn basic_add_get() {
     let actual_camera = world.get::<PerspectiveCameraComponent>(*seed);
     let expected_camera: PerspectiveCameraComponent = Mock::generate(*seed);
     assert!(actual_camera.is_some());
-    assert_approx_eq!(expected_camera, actual_camera.unwrap(), 0.1);
+    assert_approx_eq!(expected_camera, actual_camera.unwrap());
 
     let actual_transform = world.get::<Transform3DComponent>(*seed);
     let expected_transform: Transform3DComponent = Mock::generate(*seed);
     assert!(actual_transform.is_some());
-    assert_approx_eq!(expected_transform, actual_transform.unwrap(), 0.1);
+    assert_approx_eq!(expected_transform, actual_transform.unwrap());
   }
 }
-
-// #[test]
-// fn add_get_with_delete() {}
 
 #[test]
 fn basic_delete() {
@@ -68,8 +65,8 @@ fn basic_delete() {
     let (actual_camera, actual_transform) = entity.unwrap();
     let expected_camera: PerspectiveCameraComponent = Mock::generate(*seed);
     let expected_transform: Transform3DComponent = Mock::generate(*seed);
-    assert_approx_eq!(expected_camera, &actual_camera, 0.1);
-    assert_approx_eq!(expected_transform, &actual_transform, 0.1);
+    assert_approx_eq!(expected_camera, &actual_camera);
+    assert_approx_eq!(expected_transform, &actual_transform);
 
     assert!(world.get::<PerspectiveCameraComponent>(*seed).is_none());
     assert!(world.get::<Transform3DComponent>(*seed).is_none());

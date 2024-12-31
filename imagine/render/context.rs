@@ -53,7 +53,9 @@ impl RenderContext {
   }
 
   pub fn add_resource<T: Any + Send>(&mut self, name: &str, resource: T) {
-    self.resources.insert(String::from(name), Box::new(resource));
+    if !self.resources.contains_key(name) {
+      self.resources.insert(String::from(name), Box::new(resource));
+    }
   }
 
   pub fn get<T: Any>(&self, name: &str) -> Option<&T> {

@@ -14,10 +14,6 @@ macro_rules! assert_approx_eq {
   ($a:expr, $b:expr) => {
     assert!($a.approx_eq($b, f32::EPSILON));
   };
-
-  ($a:expr, $b:expr, $eps:expr) => {
-    assert!($a.approx_eq($b, $eps));
-  };
 }
 pub(crate) use assert_approx_eq;
 

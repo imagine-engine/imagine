@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
-use crate::render::{RenderContext, RenderOperation};
+use crate::render::{RenderContext, RenderOperation, NodeBuilder};
 
 use crate::render3d::PhongPassBuilder;
 
@@ -12,7 +12,7 @@ pub struct RenderGraph {
 }
 
 impl RenderGraph {
-  fn empty() -> Self {
+  pub fn empty() -> Self {
     RenderGraph {
       update_queue: Vec::new(),
       operations: HashMap::new(),
@@ -31,14 +31,46 @@ impl RenderGraph {
                       .mesh_buffer("world_3d")
                       .output("main_output_texture")
                       .framebuffer("main_frame")
-                      .build(&mut graph.context);
+                      .collect();
     graph.add_node("main_pass", phong_pass);
 
     graph
   }
 
-  pub fn add_node<T: RenderOperation + Send + 'static>(&mut self, name: &str, node: T) {
-    self.operations.insert(String::from(name), Box::new(node));
+  pub fn add_resource<T: Any + Send>(&mut self, name: &str, resource: T) {
+    self.context.add_resource(name, resource);
+  }
+
+  pub fn add_node<T: NodeBuilder>(&mut self, name: &str, builder: T)
+    where
+        T::Op: RenderOperation + Send + 'static
+  {
+    let node = builder.build(&mut self.context);
+
+    for res in node.input().iter() {
+      self.next.entry(res.to_string())
+               .or_insert(Vec::new())
+               .push(name.to_string());
+    }
+
+    for res in node.output().iter() {
+      self.next.entry(name.to_string())
+               .or_insert(Vec::new())
+               .push(res.to_string());
+    }
+
+    self.operations.insert(
+      String::from(name),
+      Box::new(node)
+    );
+  }
+
+  pub fn get_resource<T: Any>(&self, name: &str) -> Option<&T> {
+    if let Some(resource) = self.context.resources.get(name) {
+      return resource.downcast_ref();
+    }
+
+    None
   }
 
   pub fn get_resource_mut<T: Any>(&mut self, name: &str) -> Option<&mut T> {
@@ -73,14 +105,12 @@ impl RenderGraph {
         }
 
         // Run all operations
-        let mut level = Vec::new();
         for op_name in &op_names {
           if let Some(op) = self.operations.get(op_name) {
-            level.push(op.run(&mut self.context));
+            op.run(&mut self.context);
           }
         }
 
-        self.context.queue.submit(level);
         parents = op_names.clone();
       }
     }

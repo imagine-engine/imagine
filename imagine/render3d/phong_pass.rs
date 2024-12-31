@@ -2,7 +2,8 @@ use wgpu::util::DeviceExt;
 
 use crate::render::{
   RenderContext,
-  RenderOperation
+  RenderOperation,
+  NodeBuilder
 };
 
 use crate::render::primitives::Texture;
@@ -13,6 +14,7 @@ use crate::render3d::primitives::{
   Camera3DUniform
 };
 
+#[derive(Clone)]
 pub struct PhongPassBuilder {
   camera: String,
   mesh_buffer: String,
@@ -59,7 +61,15 @@ impl PhongPassBuilder {
     self
   }
 
-  pub fn build(&mut self, context: &mut RenderContext) -> PhongPass {
+  pub fn collect(&self) -> Self {
+    self.clone()
+  }
+}
+
+impl NodeBuilder for PhongPassBuilder {
+  type Op = PhongPass;
+
+  fn build(&self, context: &mut RenderContext) -> Self::Op {
     // Prepare camera uniforms
     let camera_layout = context.device.create_bind_group_layout(&PhongPass::camera_layout());
     let camera_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -326,7 +336,7 @@ impl RenderOperation for PhongPass {
     vec![self.output_texture.clone(), self.framebuffer.clone()]
   }
 
-  fn run(&self, context: &mut RenderContext) -> wgpu::CommandBuffer {
+  fn run(&self, context: &mut RenderContext) {
     let mut encoder = context.device.create_command_encoder(
       &wgpu::CommandEncoderDescriptor { label: None }
     );
@@ -405,6 +415,6 @@ impl RenderOperation for PhongPass {
       );
     }
 
-    encoder.finish()
+    context.queue.submit([encoder.finish()]);
   }
 }

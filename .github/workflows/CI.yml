@@ -29,8 +29,6 @@ jobs:
       - name: Build
         run: python setup.py develop
       - name: Run backend tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: RUSTFLAGS=-Awarnings cargo test
       - name: Run tests
         run: pytest
