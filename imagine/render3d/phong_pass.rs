@@ -67,9 +67,9 @@ impl PhongPassBuilder {
 }
 
 impl NodeBuilder for PhongPassBuilder {
-  type Op = PhongPass;
+  type Node = PhongPass;
 
-  fn build(&self, context: &mut RenderContext) -> Self::Op {
+  fn build(&self, context: &mut RenderContext) -> PhongPass {
     // Prepare camera uniforms
     let camera_layout = context.device.create_bind_group_layout(&PhongPass::camera_layout());
     let camera_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

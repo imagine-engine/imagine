@@ -1,4 +1,7 @@
 use crate::{
+  render::RenderContext,
+  render::RenderOperation,
+  render::NodeBuilder,
   render3d::MeshComponent,
   render3d::primitives::Vertex3D,
   render3d::Transform3DComponent,
@@ -133,3 +136,55 @@ impl Mock for MeshComponent {
 //   fn approx_eq(&self, other: &Self, epsilon: f32) -> bool {
 //   }
 // }
+
+//------------------------------------------------
+// Implementation for simple matrix operation node
+//------------------------------------------------
+
+#[derive(Clone)]
+pub struct MatrixOp {
+  pub a: String,
+  pub b: String,
+  pub result: String,
+  pub op: String
+}
+pub type MatrixOpBuilder = MatrixOp;
+
+impl NodeBuilder for MatrixOpBuilder {
+  type Node = MatrixOp;
+
+  fn build(&self, context: &mut RenderContext) -> Self::Node {
+    context.add_resource(&self.a, Vector3::<f32>::repeat(1.0));
+    context.add_resource(&self.b, Vector3::<f32>::repeat(1.0));
+    context.add_resource(&self.result, Vector3::<f32>::zeros());
+    self.clone()
+  }
+}
+
+impl RenderOperation for MatrixOp {
+  fn input(&self) -> Vec<String> {
+    vec![self.a.clone(), self.b.clone()]
+  }
+
+  fn output(&self) -> Vec<String> {
+    vec![self.result.clone()]
+  }
+
+  fn run(&self, context: &mut RenderContext) {
+    let m1: Option<Vector3<f32>> = context.get(&self.a).copied();
+    let m2: Option<Vector3<f32>> = context.get(&self.b).copied();
+    if let (Some(a), Some(b), Some(result)) = (
+      m1,
+      m2,
+      context.get_mut(&self.result)
+    ) {
+      *result = match self.op.as_str() {
+        "+" => a + b,
+        "-" => a - b,
+        "*" => a.component_mul(&b),
+        "/" => a.component_div(&b),
+        _ => Vector3::zeros()
+      }
+    }
+  }
+}

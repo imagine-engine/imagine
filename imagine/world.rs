@@ -34,8 +34,8 @@ use nalgebra::{Vector2, Vector3, Matrix3, Matrix4};
 
 // struct Archetype {
 //   pub mask: u32,
-//   pub entities: Vec<usize>,
-//   pub children: Vec<Archetype>
+//   pub entities: HashSet<usize>,
+//   pub children: Vec<u32>
 // }
 
 #[register(

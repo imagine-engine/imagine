@@ -43,7 +43,7 @@ impl RenderGraph {
 
   pub fn add_node<T: NodeBuilder>(&mut self, name: &str, builder: T)
     where
-        T::Op: RenderOperation + Send + 'static
+        T::Node: RenderOperation + Send + 'static
   {
     let node = builder.build(&mut self.context);
 

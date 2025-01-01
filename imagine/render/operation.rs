@@ -1,8 +1,8 @@
 use crate::render::RenderContext;
 
 pub trait NodeBuilder {
-  type Op;
-  fn build(&self, context: &mut RenderContext) -> Self::Op;
+  type Node;
+  fn build(&self, context: &mut RenderContext) -> Self::Node;
 }
 
 pub trait RenderOperation {
