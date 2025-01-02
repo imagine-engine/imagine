@@ -2,7 +2,8 @@ use nalgebra::{Vector3, Matrix4};
 
 use crate::world::World;
 use crate::instance::IMAGINE;
-use crate::world::ComponentSet;
+use crate::ecs::ComponentSet;
+// use crate::world::ComponentSet;
 use crate::render3d::Transform3DComponent;
 use crate::animation::Interpolate;
 

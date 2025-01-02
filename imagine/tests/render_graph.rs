@@ -82,6 +82,7 @@ fn parallel_select_one_op() {
     let res = format!("result_{}", i);
     assert!(graph.get_resource::<Vector3<f32>>(&m1).is_some());
     assert!(graph.get_resource::<Vector3<f32>>(&m2).is_some());
+    assert!(graph.get_resource::<Vector3<f32>>(&res).is_some());
     let expected_result = if selected.contains(&i) {
       let new_m1 = Vector3::<f32>::new_random();
       let new_m2 = Vector3::<f32>::new_random();
@@ -89,7 +90,7 @@ fn parallel_select_one_op() {
       *graph.get_resource_mut(&m2).unwrap() = new_m2;
       new_m1 + new_m2
     } else {
-      graph.get_resource::<Vector3<f32>>(&res).copied().unwrap()
+      graph.get_resource::<Vector3<f32>>(&res).unwrap().clone()
     };
     expected.push((res, expected_result));
   }
@@ -97,6 +98,9 @@ fn parallel_select_one_op() {
   graph.run();
 
   for (res_name, expected_result) in expected.iter() {
-    assert_abs_diff_eq!(expected_result, graph.get_resource(&res_name).unwrap());
+    assert_abs_diff_eq!(
+      expected_result,
+      graph.get_resource(&res_name).unwrap()
+    );
   }
 }

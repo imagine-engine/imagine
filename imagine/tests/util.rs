@@ -20,6 +20,11 @@ macro_rules! assert_approx_eq {
 }
 pub(crate) use assert_approx_eq;
 
+
+/*----------------------------
+  Mock components for testing
+------------------------------*/
+
 pub trait Mock {
   fn generate(seed: usize) -> Self;
   fn approx_eq(&self, other: &Self, epsilon: f32) -> bool;
@@ -129,17 +134,9 @@ impl Mock for MeshComponent {
   }
 }
 
-// impl Mock for _____ {
-//   fn generate(seed: usize) -> Self {
-//   }
-
-//   fn approx_eq(&self, other: &Self, epsilon: f32) -> bool {
-//   }
-// }
-
-//------------------------------------------------
-// Implementation for simple matrix operation node
-//------------------------------------------------
+/*---------------------------------------
+  Example Operation Node for matrix math
+-----------------------------------------*/
 
 #[derive(Clone)]
 pub struct MatrixOp {

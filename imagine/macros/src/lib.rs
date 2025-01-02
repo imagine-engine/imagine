@@ -101,52 +101,33 @@ pub fn register(args: TokenStream, input: TokenStream) -> TokenStream {
     use std::ptr::NonNull;
     use std::marker::PhantomData;
     use std::collections::hash_map::{Values, ValuesMut};
-
-    pub trait Component {
-      fn mask() -> u32;
-    }
-
-    pub trait ComponentSet<T> {
-      fn push_component(&mut self, component: T) {}
-      fn insert_component(&mut self, id: usize, component: T) {}
-      fn get_component(&self, id: usize) -> Option<&T> { None }
-      fn get_component_mut(&mut self, id: usize) -> Option<&mut T> { None }
-      fn delete_component(&mut self, id: usize) -> Option<T>;
-      fn iter_components(&self) -> Values<'_, usize, T>;
-      fn iter_components_mut(&mut self) -> ValuesMut<'_, usize, T>;
-    }
-
-    pub trait HandleBundle<T> {
-      fn delete_components(&mut self, id: usize) -> Option<T>;
-      fn push_components(&mut self, components: T);
-      fn insert_components(&mut self, id: usize, components: T);
-    }
+    use crate::ecs::*;
 
     #[derive(Default)]
     pub struct #name {
       #(#fields)*
     }
 
-    pub trait QueryGet<T> {
-      fn get<'a>(&self, id: usize) -> Option<&'a T>;
-    }
-
-    pub trait QueryGetMut<T> {
-      fn get_mut<'a>(&mut self, id: usize) -> Option<&'a mut T>;
-    }
-
     pub struct Queries<'a, T> {
       #(#pointers)*
       phantom: PhantomData<&'a T>,
       entities: Vec<usize>,
-      index: usize
+      pub index: usize
     }
 
     pub struct QueriesMut<'a, T> {
       #(#pointers)*
       phantom: PhantomData<&'a T>,
       entities: Vec<usize>,
-      index: usize
+      pub index: usize
+    }
+
+    pub trait QueryGet<T> {
+      fn get<'a>(&self, id: usize) -> Option<&'a T>;
+    }
+    
+    pub trait QueryGetMut<T> {
+      fn get_mut<'a>(&mut self, id: usize) -> Option<&'a mut T>;
     }
 
     impl #name {
